@@ -1,11 +1,15 @@
 import json
-import re
 from multiprocessing.pool import ThreadPool
+import pprint
 
-import matplotlib.pyplot as plt
-import numpy as np
 import requests
 from bs4 import BeautifulSoup
+from pylab import *
+
+mpl.rcParams['font.sans-serif'] = ['SimHei']  # 指定默认字体（解决中文无法显示的问题）
+mpl.rcParams['axes.unicode_minus'] = False  # 解决保存图像时负号“-”显示方块的问题
+
+pp = pprint.PrettyPrinter(indent=4)
 
 format_data = [14.42, 13.99, 14.0, 13.57, 13.41, 13.38, 13.28, 13.31, 13.02, 12.53, 12.2, 11.18, 10.84, 10.85, 11.13,
                11.4, 11.29, 11.41, 11.52, 11.85, 11.58, 12.64, 13.18, 12.6, 12.5, 12.28, 12.36, 12.56, 12.99, 13.46]
@@ -17,8 +21,8 @@ def alignment_data(n, m):
     dis = start - m[0]
     new_list = []
     for x in m:
-        new_list.append(x + dis)
-    return new_list
+        new_list.append(round(float(x+dis), 2))
+    return dis, new_list
 
 
 # 东方财富历史数据
@@ -39,17 +43,18 @@ def req_history_data(stock_code):
     resp_data = json.loads(re.findall('\((.*?)\)', resp.text, re.S)[0]).get('data')
     stock_name = resp_data.get('name')
     his_high = []
+
     for h in resp_data.get('klines')[-30:]:
         detail_data = h.split(',')
         his_high.append(float(detail_data[3]))
-    return stock_name, his_high
+    return stock_code, stock_name, his_high
 
 
 # 获取最近30天交易数据
 def get_30_days_data(stock_code):
-    stock_name, stock_history_data = req_history_data(stock_code)
-    stock_history_data = alignment_data(format_data, stock_history_data)
-    return {'stock_name': stock_name, 'stock_history_data': stock_history_data}
+    stock_code, stock_name, stock_history_data = req_history_data(stock_code)
+    dis, stock_history_data = alignment_data(format_data, stock_history_data)
+    return {'stock_code': stock_code, 'stock_name': stock_name, 'stock_history_data': stock_history_data, 'dis': dis}
 
 
 # 相似度计算
@@ -77,20 +82,23 @@ def handle_dtw(a, b):
 def draw(stock_list):
     x = np.linspace(0, 1, 30)
     plt.figure()
-    plt.xlabel('X axis')
-    plt.ylabel('Y axis')
 
     # 画标准数据线
-    plt.plot(x, format_data)
+    plt.plot(x, format_data,label='标准')
 
     # 画其他数据线
     for stock_data in stock_list:
-        plt.plot(x, stock_data['stock_history_data'], linestyle='--')
+        plt.plot(x, stock_data['stock_history_data'], linestyle='--', label=stock_data['stock_name'])
+
+    plt.legend(loc=0)
     plt.show()
 
 
 # 获取曲线相似度结果
 def get_result(stock_list=None):
+    if not  stock_list:
+        print('--- 获取龙虎榜失败 ---')
+        return
     names = []
     results = []
     for stock_data in stock_list:
@@ -99,35 +107,39 @@ def get_result(stock_list=None):
         stock_result = handle_dtw(format_data, stock_history_data)
         names.append(stock_name)
         results.append(stock_result)
-    print(f'本期最接近标准线的是：{names[results.index(min(results))]}')
-    draw(stock_list)
+    best_stock_name = names[results.index(min(results))]
+    for stock_data in stock_list:
+        if stock_data.get('stock_name')==best_stock_name:
+            best_stock_last_price = round(float(stock_data['stock_history_data'][-1] - stock_data['dis']), 2)
+            print(f'本期最接近标准线的是：{stock_data["stock_code"]} {best_stock_name}\n最后收盘价是：{best_stock_last_price}')
 
+    draw(stock_list)
 
 # 龙虎榜数据
 def req_longhu_stocks():
     url = 'http://data.10jqka.com.cn/rank/lxsz/field/lxts/order/asc/page/1/ajax/1/free/1/'
     headers = {
-        'Accept': 'text/html, */*; q=0.01',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
         'Accept-Encoding': 'gzip, deflate',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Cookie': 'Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1654941130; Hm_lvt_60bad21af9c824a4a0530d5dbf4357ca=1654941130; Hm_lvt_f79b64788a4e377c608617fba4c736e2=1654941130; refreshStat=off; Hm_lpvt_60bad21af9c824a4a0530d5dbf4357ca=1654941298; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1654941298; Hm_lpvt_f79b64788a4e377c608617fba4c736e2=1654941298; v=AyCKwOn-VscFb-rDI1rDjwCN8SX3KQE1pgpY-5ox7mrNmc4bQjnUg_YdKI_p',
-        'hexin-v': 'AyCKwOn-VscFb-rDI1rDjwCN8SX3KQE1pgpY-5ox7mrNmc4bQjnUg_YdKI_p',
+        'Cookie': 'v=AzQDY-326sGvyX4NlqO6G6U2BfmjDVj3mjHsO86VwL9COdon9h0oh-pBvMod',
         'Host': 'data.10jqka.com.cn',
-        'Referer': 'http://data.10jqka.com.cn/rank/lxsz/',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36',
-        'X-Requested-With': 'XMLHttpRequest'
+        'Pragma': 'no-cache',
+        'Referer': 'http://data.10jqka.com.cn/rank/lxsz/field/lxts/order/asc/page/1/ajax/1/free/1/',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.115 Safari/537.36'
     }
     resp = requests.get(url=url, headers=headers)
-
     soup = BeautifulSoup(resp.text, 'lxml')
     try:
         stocks = []
-        for tr in soup.find('table', {'class': 'm-table J-ajax-table'}).find_all('tr'):
+        for tr in soup.find_all('tr'):
             try:
                 stock_code = tr.find_all('td')[1].get_text()
                 up_days = tr.find_all('td')[6].get_text()
-                if int(up_days) <= 3 and str(stock_code).startswith('00'):
+                if int(up_days) <= 3 and str(stock_code).startswith('00') and '退' not in str(tr):
                     stocks.append(stock_code)
             except:
                 pass
