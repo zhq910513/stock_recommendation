@@ -1,0 +1,8 @@
+MYSQL_HOST = '192.168.50.45'
+MYSQL_PORT = 3306
+MYSQL_USR_ROOT = 'root'
+MYSQL_PWD_ROOT = 'Dw@123654'
+MYSQL_USR = 'readWrite'
+MYSQL_PWD = 'Dw@123654'
+MYSQL_DB = 'sdfz_xq'
+MODEL_COLLECTION = 'huggingface_models'
