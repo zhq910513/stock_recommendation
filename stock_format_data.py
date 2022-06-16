@@ -17,13 +17,36 @@ from numpy import *
 
 pp = pprint.PrettyPrinter(indent=4)
 
-# 标准数据
-format_data = [
-    -3.01, 0.51, -3.95, 0.22, -2.31, 0.76, -0.23, -1.97, -4.42, -0.97, -9.98, -4.27, 2.37, -2.04, 4.73, 1.99, -1.06,
-    1.88, 1.06, -0.61, 0.61, 10.01, -2.14, -1.7, 1.73, -1.7, 0.41, 2.87, -2.55, 9.97
-]
 format_list = []
 
+# 标准数据类型   high   low   aver   rate
+def get_format_data(_type):
+    if _type == 'high':
+        _type_index = 3
+        format_data = [13.99, 14.0, 13.57, 13.41, 13.38, 13.28, 13.31, 13.02, 12.53, 12.2, 11.18, 10.84, 10.85, 11.13,
+                       11.4, 11.29, 11.41, 11.52, 11.85, 11.58, 12.64, 13.18, 12.6, 12.5, 12.28, 12.36, 12.56, 12.99,
+                       13.46, 14.81]
+    elif _type == 'low':
+        _type_index = 4
+        format_data = [13.43, 13.36, 13.37, 13.03, 12.91, 13.06, 12.85, 12.32, 12.01, 11.0, 10.47, 10.06, 10.41, 10.62,
+                       10.88, 10.98, 11.18, 11.14, 11.41, 11.26, 11.46, 12.27, 12.11, 12.07, 12.0, 12.13, 12.17, 12.23,
+                       12.1, 13.17]
+    elif _type == 'aver':
+        _type_index = 3.4
+        format_data = [13.71, 13.68, 13.47, 13.22, 13.14, 13.17, 13.08, 12.67, 12.27, 11.6, 10.82, 10.45, 10.63, 10.88,
+                       11.14, 11.13, 11.29, 11.33, 11.63, 11.42, 12.05, 12.72, 12.36, 12.29, 12.14, 12.25, 12.37, 12.61,
+                       12.78, 13.99]
+    elif _type == 'rate':
+        _type_index = 8
+        format_data = [0.51, -3.95, 0.22, -2.31, 0.76, -0.23, -1.97, -4.42, -0.97, -9.98, -4.27, 2.37, -2.04, 4.73,
+                       1.99, -1.06, 1.88, 1.06, -0.61, 0.61, 10.01, -2.14, -1.7, 1.73, -1.7, 0.41, 2.87, -2.55, 9.97,
+                       10.03]
+    else:
+        _type_index = 0
+        format_data = []
+        print('暂时不支持该类型')
+    return _type_index, format_data
+_type_index, format_data = get_format_data('rate')
 
 # 相似度计算
 def handle_dtw(a, b):
@@ -53,7 +76,12 @@ def find_similar_data(his_list):
         if i + 30 < _max:
             his_rate_list = []
             for data in his_list[i:(i + 30)]:
-                his_rate_list.append(round(float(data.split(',')[8]), 2))
+                if isinstance(_type_index, float):
+                    his_data = round((round(float(data.split(',')[3]), 2) + round(float(data.split(',')[4]), 2)) / 2, 2)
+                else:
+                    his_data = round(float(data.split(',')[_type_index]), 2)
+                his_rate_list.append(his_data)
+
             data_list.append(his_rate_list)
     results = []
     for stock_data in data_list:
@@ -110,7 +138,7 @@ if __name__ == '__main__':
     ]
     for stock_code in stocks:
         req_history_data(stock_code)
-    print(format_list)
+    # print(format_list)
 
     new_format_data = []
     for _index in range(30):
