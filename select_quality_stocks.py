@@ -18,6 +18,7 @@ from pylab import *
 
 from pipelines import MongoPipeline
 from rules import *
+from common.log_out import log, log_err
 
 mpl.rcParams['font.sans-serif'] = ['SimHei']  # 指定默认字体（解决中文无法显示的问题）
 mpl.rcParams['axes.unicode_minus'] = False  # 解决保存图像时负号“-”显示方块的问题
@@ -156,48 +157,51 @@ class Stock:
                     pass
             return stocks
         except Exception as error:
-            print(error)
+            log_err(error)
 
     # 东方财富历史数据
     @staticmethod
     def req_history_data(stock_info):
-        url = f'http://78.push2his.eastmoney.com/api/qt/stock/kline/get' \
-              f'?cb=jQuery' \
-              f'&secid=0.{stock_info["stock_code"]}' \
-              f'&ut=fa5fd1943c7b386f172d6893dbfba10b' \
-              f'&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6' \
-              f'&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61' \
-              f'&klt=101' \
-              f'&fqt=0' \
-              f'&end=20500101' \
-              f'&lmt=120' \
-              f'&_={int(time.time() * 1000)}'
-        headers = {
-            'Accept': '*/*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            'Connection': 'keep-alive',
-            'Cookie': 'qgqp_b_id=e829d607b6454c6dde64109c61f936e2; st_si=21280292358923; HAList=a-sz-000756-%u65B0%u534E%u5236%u836F; em_hq_fls=js; st_pvi=94651109933561; st_sp=2022-06-11%2016%3A19%3A10; st_inirUrl=https%3A%2F%2Fwww.baidu.com%2Flink; st_sn=17; st_psi=20220611165158402-113200301201-7930304906; st_asi=delete',
-            'Host': '46.push2his.eastmoney.com',
-            'Referer': 'http://quote.eastmoney.com/',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'
-        }
-        resp = requests.get(url=url, headers=headers)
-        resp_data = json.loads(re.findall('\((.*?)\)', resp.text, re.S)[0]).get('data')
-        stock_name = resp_data.get('name')
-        his_data = []
-        for h in resp_data.get('klines')[-30:]:
-            his_data.append(h.split(','))
-        last_price = resp_data.get('klines')[-1].split(',')
-        last_detail = dict(zip(names, last_price))
-        return {
-            'stock_code': stock_info["stock_code"],
-            'stock_trade': stock_info["stock_trade"],
-            'up_days': stock_info["up_days"],
-            'stock_name': stock_name,
-            'stock_history_data': his_data,
-            'last_detail': last_detail
-        }
+        try:
+            url = f'http://78.push2his.eastmoney.com/api/qt/stock/kline/get' \
+                  f'?cb=jQuery' \
+                  f'&secid=0.{stock_info["stock_code"]}' \
+                  f'&ut=fa5fd1943c7b386f172d6893dbfba10b' \
+                  f'&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6' \
+                  f'&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61' \
+                  f'&klt=101' \
+                  f'&fqt=0' \
+                  f'&end=20500101' \
+                  f'&lmt=120' \
+                  f'&_={int(time.time() * 1000)}'
+            headers = {
+                'Accept': '*/*',
+                'Accept-Encoding': 'gzip, deflate',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Connection': 'keep-alive',
+                'Cookie': 'qgqp_b_id=e829d607b6454c6dde64109c61f936e2; st_si=21280292358923; HAList=a-sz-000756-%u65B0%u534E%u5236%u836F; em_hq_fls=js; st_pvi=94651109933561; st_sp=2022-06-11%2016%3A19%3A10; st_inirUrl=https%3A%2F%2Fwww.baidu.com%2Flink; st_sn=17; st_psi=20220611165158402-113200301201-7930304906; st_asi=delete',
+                'Host': '46.push2his.eastmoney.com',
+                'Referer': 'http://quote.eastmoney.com/',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'
+            }
+            resp = requests.get(url=url, headers=headers)
+            resp_data = json.loads(re.findall('\((.*?)\)', resp.text, re.S)[0]).get('data')
+            stock_name = resp_data.get('name')
+            his_data = []
+            for h in resp_data.get('klines')[-30:]:
+                his_data.append(h.split(','))
+            last_price = resp_data.get('klines')[-1].split(',')
+            last_detail = dict(zip(names, last_price))
+            return {
+                'stock_code': stock_info["stock_code"],
+                'stock_trade': stock_info["stock_trade"],
+                'up_days': stock_info["up_days"],
+                'stock_name': stock_name,
+                'stock_history_data': his_data,
+                'last_detail': last_detail
+            }
+        except Exception as error:
+            log_err(error)
 
     # 对齐标准数据
     @staticmethod
@@ -222,28 +226,31 @@ class Stock:
     # 相似度计算
     @staticmethod
     def handle_dtw(a, b):
-        x = len(a)
-        y = len(b)
-        dist = [[0 for i in range(x)] for j in range(y)]
-        G = [[0 for i in range(x)] for j in range(y)]
-        for j in range(y):
-            for i in range(x):
-                dist[j][i] = abs(a[i] - b[j])
-        G[0][0] = dist[0][0] * 2
-        for j in range(y - 1):
-            G[j + 1][0] = G[j][0] + dist[j + 1][0]
-        for i in range(x - 1):
-            G[0][i + 1] = G[0][i] + dist[0][i + 1]
-        for j in range(y - 1):
+        try:
+            x = len(a)
+            y = len(b)
+            dist = [[0 for i in range(x)] for j in range(y)]
+            G = [[0 for i in range(x)] for j in range(y)]
+            for j in range(y):
+                for i in range(x):
+                    dist[j][i] = abs(a[i] - b[j])
+            G[0][0] = dist[0][0] * 2
+            for j in range(y - 1):
+                G[j + 1][0] = G[j][0] + dist[j + 1][0]
             for i in range(x - 1):
-                G[j + 1][i + 1] = min((G[j][i + 1] + dist[j + 1][i + 1]), (G[j + 1][i] + dist[j + 1][i + 1]),
-                                      (G[j][i] + 2 * dist[j + 1][i + 1]))
-        return G[y - 1][x - 1]
+                G[0][i + 1] = G[0][i] + dist[0][i + 1]
+            for j in range(y - 1):
+                for i in range(x - 1):
+                    G[j + 1][i + 1] = min((G[j][i + 1] + dist[j + 1][i + 1]), (G[j + 1][i] + dist[j + 1][i + 1]),
+                                          (G[j][i] + 2 * dist[j + 1][i + 1]))
+            return G[y - 1][x - 1]
+        except Exception as error:
+            log_err(error)
 
     # 获取曲线相似度结果
     def get_result(self):
         if not self.stock_history:
-            print('--- 获取龙虎榜失败 ---')
+            log('--- 获取龙虎榜失败 ---')
             return
 
         for index_type in [
@@ -252,44 +259,47 @@ class Stock:
             'aver',
             'rate'
         ]:
-            # 保存数据
-            save_data = {'update_time': time.strftime("%Y-%m-%d", time.localtime(time.time())),
-                         'stock_info_list': self.stock_info_list}
-            _type_index, format_data = self.get_format_data(index_type)
+            try:
+                # 保存数据
+                save_data = {'update_time': time.strftime("%Y-%m-%d", time.localtime(time.time())),
+                             'stock_info_list': self.stock_info_list}
+                _type_index, format_data = self.get_format_data(index_type)
 
-            names = []
-            results = []
-            for stock_data in self.stock_history:
-                stock_name = stock_data['stock_name']
-                stock_history_data = self.get_30_days_data(_type_index, stock_data['stock_history_data'], format_data)
-                stock_result = self.handle_dtw(format_data, stock_history_data)
-                names.append(stock_name)
-                results.append(stock_result)
-            best_stock_name = names[results.index(min(results))]
-            best_stock_his = []
-            for stock_data in self.stock_history:
-                if stock_data.get('stock_name') == best_stock_name:
-                    last_detail = stock_data['last_detail']
-                    best_stock_his.append({
-                        'stock_name': stock_data['stock_name'],
-                        'stock_history_data': self.get_30_days_data(_type_index, stock_data['stock_history_data'], format_data)
-                    })
-                    save_data.update({
-                        'best_stock_code': stock_data["stock_code"],
-                        'best_stock_name': best_stock_name,
-                        'trade': stock_data["stock_trade"],
-                        'up_days': stock_data["up_days"],
-                        'type': [index_type]
-                    })
-                    save_data.update(last_detail)
-                    print(f'本期最接近标准线的是：{stock_data["stock_code"]} {best_stock_name}\n最后收盘信息：{last_detail}')
+                names = []
+                results = []
+                for stock_data in self.stock_history:
+                    stock_name = stock_data['stock_name']
+                    stock_history_data = self.get_30_days_data(_type_index, stock_data['stock_history_data'], format_data)
+                    stock_result = self.handle_dtw(format_data, stock_history_data)
+                    names.append(stock_name)
+                    results.append(stock_result)
+                best_stock_name = names[results.index(min(results))]
+                best_stock_his = []
+                for stock_data in self.stock_history:
+                    if stock_data.get('stock_name') == best_stock_name:
+                        last_detail = stock_data['last_detail']
+                        best_stock_his.append({
+                            'stock_name': stock_data['stock_name'],
+                            'stock_history_data': self.get_30_days_data(_type_index, stock_data['stock_history_data'], format_data)
+                        })
+                        save_data.update({
+                            'best_stock_code': stock_data["stock_code"],
+                            'best_stock_name': best_stock_name,
+                            'trade': stock_data["stock_trade"],
+                            'up_days': stock_data["up_days"],
+                            'type': [index_type]
+                        })
+                        save_data.update(last_detail)
+                        log(f'本期最接近标准线的是：{stock_data["stock_code"]} {best_stock_name}\n最后收盘信息：{last_detail}')
 
-            # 画图
-            if show:
-                self.draw(format_data, best_stock_his)
+                # 画图
+                if show:
+                    self.draw(format_data, best_stock_his)
 
-            # save
-            MongoPipeline('daily_info').update_item({'update_time': None, 'best_stock_code': None}, save_data)
+                # save
+                MongoPipeline('daily_info').update_item({'update_time': None, 'best_stock_code': None}, save_data)
+            except Exception as error:
+                log_err(error)
 
     # 画图
     @staticmethod
