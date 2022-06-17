@@ -33,7 +33,7 @@ names = [
 show = False
 
 # 龙虎榜cookie   http://data.10jqka.com.cn/rank/lxsz/field/lxts/order/asc/page/1/ajax/1/free/1/
-Cookie = 'v=A6KVGY9oNFGlByiNM-2hoY4n8yMB86YNWPeaMew7zpXAv0yd1IP2HSiH6kC_'
+Cookie = 'v=AxAnz6nCRj_7tRo7hdHT_5A94VVn2fQjFr1IJwrh3Gs-Rb5LsunEs2bNGLZZ'
 
 
 class Stock:
@@ -146,13 +146,15 @@ class Stock:
                     stock_code = tr.find_all('td')[1].get_text()
                     up_days = tr.find_all('td')[6].get_text()
                     trade = tr.find_all('td')[9].get_text()
-                    if int(up_days) <= r_up_days and str(stock_code).startswith('00') and '退' not in str(tr):
-                        if trade in r_trades:
-                            stocks.append({
-                                'stock_code': stock_code,
-                                'up_days': up_days,
-                                'stock_trade': trade
-                            })
+                    if '退' in str(tr):continue
+                    if int(up_days) > r_up_days:continue
+                    if str(stock_code)[:2] not in r_filter:continue
+                    if trade not in r_trades:continue
+                    stocks.append({
+                        'stock_code': stock_code,
+                        'up_days': up_days,
+                        'stock_trade': trade
+                    })
                 except:
                     pass
             return stocks
