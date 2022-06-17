@@ -17,6 +17,7 @@ from bs4 import BeautifulSoup
 from pylab import *
 
 from pipelines import MongoPipeline
+from rules import *
 
 mpl.rcParams['font.sans-serif'] = ['SimHei']  # 指定默认字体（解决中文无法显示的问题）
 mpl.rcParams['axes.unicode_minus'] = False  # 解决保存图像时负号“-”显示方块的问题
@@ -31,7 +32,7 @@ names = [
 show = False
 
 # 龙虎榜cookie   http://data.10jqka.com.cn/rank/lxsz/field/lxts/order/asc/page/1/ajax/1/free/1/
-Cookie = 'v=A_rNEfcQTN_Nt8Cz2YuJ2fZvSysZq36F8C_yKQTzpg1Y95SV7DvOlcC_QjjX'
+Cookie = 'v=A6KVGY9oNFGlByiNM-2hoY4n8yMB86YNWPeaMew7zpXAv0yd1IP2HSiH6kC_'
 
 
 class Stock:
@@ -144,12 +145,13 @@ class Stock:
                     stock_code = tr.find_all('td')[1].get_text()
                     up_days = tr.find_all('td')[6].get_text()
                     trade = tr.find_all('td')[9].get_text()
-                    if int(up_days) <= 3 and str(stock_code).startswith('00') and '退' not in str(tr):
-                        stocks.append({
-                            'stock_code': stock_code,
-                            'up_days': up_days,
-                            'stock_trade': trade
-                        })
+                    if int(up_days) <= r_up_days and str(stock_code).startswith('00') and '退' not in str(tr):
+                        if trade in r_trades:
+                            stocks.append({
+                                'stock_code': stock_code,
+                                'up_days': up_days,
+                                'stock_trade': trade
+                            })
                 except:
                     pass
             return stocks
@@ -304,6 +306,7 @@ class Stock:
 
         plt.legend(loc=0)
         plt.show()
+
 
 
 if __name__ == '__main__':
