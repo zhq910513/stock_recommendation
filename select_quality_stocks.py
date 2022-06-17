@@ -290,7 +290,7 @@ class Stock:
                             'type': [index_type]
                         })
                         save_data.update(last_detail)
-                        log(f'本期最接近标准线的是：{stock_data["stock_code"]} {best_stock_name}\n最后收盘信息：{last_detail}')
+                        print(f'本期最接近标准线的是：{stock_data["stock_code"]} {best_stock_name}\n最后收盘信息：{last_detail}')
 
                 # 画图
                 if show:
