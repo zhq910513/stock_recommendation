@@ -119,32 +119,37 @@ def req_history_data(stock_code):
     resp_data = json.loads(re.findall('\((.*?)\)', resp.text, re.S)[0]).get('data')
     his_list = resp_data.get('klines')
 
-    similar_data = find_similar_data(his_list)
-    format_list.append(similar_data)
+    # similar_data = find_similar_data(his_list)
+    # format_list.append(similar_data)
 
+    high = []
+    for info in his_list[-30:]:
+        high.append(round(float(info.split(',')[3]), 2))
+    print(high)
 
 if __name__ == '__main__':
-    stocks = [
-        '002988',
-        '000025',
-        '002339',
-        '002380',
-        '002272',
-        '002986',
-        '002945',
-        '000722',
-        '000756',
-        '002101'
-    ]
-    for stock_code in stocks:
-        req_history_data(stock_code)
-    # print(format_list)
-
-    new_format_data = []
-    for _index in range(30):
-        _index_data_list = []
-        for i in format_list:
-            _index_data_list.append(i[_index])
-        new_format_data.append(round(mean(_index_data_list), 2))
-
-    print(new_format_data)
+    # stocks = [
+    #     '002988',
+    #     '000025',
+    #     '002339',
+    #     '002380',
+    #     '002272',
+    #     '002986',
+    #     '002945',
+    #     '000722',
+    #     '000756',
+    #     '002101'
+    # ]
+    # for stock_code in stocks:
+    #     req_history_data(stock_code)
+    # # print(format_list)
+    #
+    # new_format_data = []
+    # for _index in range(30):
+    #     _index_data_list = []
+    #     for i in format_list:
+    #         _index_data_list.append(i[_index])
+    #     new_format_data.append(round(mean(_index_data_list), 2))
+    #
+    # print(new_format_data)
+    req_history_data('000788')

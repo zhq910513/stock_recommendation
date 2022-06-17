@@ -225,29 +225,42 @@ class Stock:
                 new_his_data.append(round(float(data[_index]), 2))
         return self.alignment_data(format_data, new_his_data)
 
-    # 相似度计算
     @staticmethod
-    def handle_dtw(a, b):
-        try:
-            x = len(a)
-            y = len(b)
-            dist = [[0 for i in range(x)] for j in range(y)]
-            G = [[0 for i in range(x)] for j in range(y)]
-            for j in range(y):
-                for i in range(x):
-                    dist[j][i] = abs(a[i] - b[j])
-            G[0][0] = dist[0][0] * 2
-            for j in range(y - 1):
-                G[j + 1][0] = G[j][0] + dist[j + 1][0]
-            for i in range(x - 1):
-                G[0][i + 1] = G[0][i] + dist[0][i + 1]
-            for j in range(y - 1):
-                for i in range(x - 1):
-                    G[j + 1][i + 1] = min((G[j][i + 1] + dist[j + 1][i + 1]), (G[j + 1][i] + dist[j + 1][i + 1]),
-                                          (G[j][i] + 2 * dist[j + 1][i + 1]))
-            return G[y - 1][x - 1]
-        except Exception as error:
-            log_err(error)
+    def cal_frechet_distance(curve_a: np.ndarray, curve_b: np.ndarray):
+        # 距离公式，两个坐标作差，平方，累加后开根号
+        def euc_dist(pt1, pt2):
+            return np.sqrt(np.square(pt2[0] - pt1[0]) + np.square(pt2[1] - pt1[1]))
+
+        # 用递归方式计算，遍历整个ca矩阵
+        def _c(ca, i, j, P, Q):  # 从ca左上角开始计算，这里用堆的方法把计算序列从右下角压入到左上角，实际计算时是从左上角开始
+            if ca[i, j] > -1:
+                return ca[i, j]
+            elif i == 0 and j == 0:  # 走到最左上角，只会计算一次
+                ca[i, j] = euc_dist(P[0], Q[0])
+            elif i > 0 and j == 0:  # 沿着Q的边边走
+                ca[i, j] = max(_c(ca, i - 1, 0, P, Q), euc_dist(P[i], Q[0]))
+            elif i == 0 and j > 0:  # 沿着P的边边走
+                ca[i, j] = max(_c(ca, 0, j - 1, P, Q), euc_dist(P[0], Q[j]))
+            elif i > 0 and j > 0:  # 核心代码：在ca矩阵中间走，寻找对齐路径
+                ca[i, j] = max(min(_c(ca, i - 1, j, P, Q),  # 正上方
+                                   _c(ca, i - 1, j - 1, P, Q),  # 斜左上角
+                                   _c(ca, i, j - 1, P, Q)),  # 正左方
+                               euc_dist(P[i], Q[j]))
+            else:  # 非法的无效数据，算法中不考虑，此时 i<0,j<0
+                ca[i, j] = float("inf")
+            return ca[i, j]
+
+        # 这个是给我们调用的方法
+        def frechet_distance(P, Q):
+            ca = np.ones((len(P), len(Q)))
+            ca = np.multiply(ca, -1)
+            dis = _c(ca, len(P) - 1, len(Q) - 1, P, Q)  # ca为全-1的矩阵，shape = ( len(a), len(b) )
+            return dis
+
+        # 这里构造计算序列
+        curve_line_a = list(zip(range(len(curve_a)), curve_a))
+        curve_line_b = list(zip(range(len(curve_b)), curve_b))
+        return frechet_distance(curve_line_a, curve_line_b)
 
     # 获取曲线相似度结果
     def get_result(self):
@@ -273,7 +286,8 @@ class Stock:
                     stock_name = stock_data['stock_name']
                     stock_history_data = self.get_30_days_data(_type_index, stock_data['stock_history_data'],
                                                                format_data)
-                    stock_result = self.handle_dtw(format_data, stock_history_data)
+                    # stock_result = self.handle_dtw(format_data, stock_history_data)
+                    stock_result = self.cal_frechet_distance(np.array(format_data), np.array(stock_history_data))
                     names.append(stock_name)
                     results.append(stock_result)
                 best_stock_name = names[results.index(min(results))]
@@ -301,7 +315,7 @@ class Stock:
                     self.draw(format_data, best_stock_his)
 
                 # save
-                MongoPipeline('daily_info').update_item({'update_time': None, 'best_stock_code': None}, save_data)
+                MongoPipeline('daily_info_1').update_item({'update_time': None, 'best_stock_code': None}, save_data)
             except Exception as error:
                 log_err(error)
 
