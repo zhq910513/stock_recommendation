@@ -276,7 +276,8 @@ class Stock:
                     stock_result = self.handle_dtw(format_data, stock_history_data)
                     names.append(stock_name)
                     results.append(stock_result)
-                best_stock_name = names[results.index(min(results))]
+                best_result = min(results)
+                best_stock_name = names[results.index(best_result)]
                 best_stock_his = []
                 for stock_data in self.stock_history:
                     if stock_data.get('stock_name') == best_stock_name:
@@ -291,7 +292,8 @@ class Stock:
                             'best_stock_name': best_stock_name,
                             'trade': stock_data["stock_trade"],
                             'up_days': stock_data["up_days"],
-                            'type': [index_type]
+                            'type': [index_type],
+                            'match': best_result
                         })
                         save_data.update(last_detail)
                         log(f'本期最接近标准线的是：{stock_data["stock_code"]} {best_stock_name}\n最后收盘信息：{last_detail}')
