@@ -1,5 +1,1 @@
-[ERROR] 2022-06-21 10:12:32 [req_history_data] ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None)) select_quality_stocks.py:206
-[ERROR] 2022-06-21 10:12:32 [get_result] 'NoneType' object is not subscriptable select_quality_stocks.py:308
-[ERROR] 2022-06-21 10:12:33 [get_result] 'NoneType' object is not subscriptable select_quality_stocks.py:308
-[ERROR] 2022-06-21 10:12:33 [get_result] 'NoneType' object is not subscriptable select_quality_stocks.py:308
-[ERROR] 2022-06-21 10:12:33 [get_result] 'NoneType' object is not subscriptable select_quality_stocks.py:308
+[ERROR] 2022-06-21 15:42:15 [get_all_stocks] 'type' yesterday_longhubang.py:86

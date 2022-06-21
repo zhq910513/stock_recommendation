@@ -61,7 +61,7 @@ class MongoPipeline:
         if data:
             item['type'] = list(set(data['type'] + item['type']))
         if isinstance(item, dict):
-            print(item)
+            # print(item)
             try:
                 self.coll.update_one(self.field_query(query, item), {'$set': item}, upsert=True)
             except Exception as error:
