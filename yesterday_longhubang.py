@@ -7,18 +7,18 @@
 # from multiprocessing.pool import ThreadPool
 #
 import hashlib
-import time
-
-import requests
 # from bs4 import BeautifulSoup
 # from pylab import *
 import pprint
+import time
 
-from common.log_out import log, log_err
+import requests
+
+from common.log_out import log_err
 from pipelines import MongoPipeline
 
 requests.packages.urllib3.disable_warnings()
-pp=pprint.PrettyPrinter(indent=4)
+pp = pprint.PrettyPrinter(indent=4)
 
 # https://eq.10jqka.com.cn/lhbEnhanced/public/indexV2.html
 
@@ -28,9 +28,9 @@ pp=pprint.PrettyPrinter(indent=4)
 db = 'stock'
 
 # mongo collections
-longhu_all = 'longhu_all'   # 总榜
-longhu_capital = 'longhu_capital'   # 机构榜
-longhu_org = 'longhu_org'   # 游资榜
+longhu_all = 'longhu_all'  # 总榜
+longhu_capital = 'longhu_capital'  # 机构榜
+longhu_org = 'longhu_org'  # 游资榜
 
 
 def get_all_stocks(date='2022-06-20'):
@@ -80,7 +80,6 @@ def get_all_stocks(date='2022-06-20'):
                         MongoPipeline(longhu_capital).update_item({'hash_key': None}, data)
                     except:
                         pass
-
 
                 # 游资榜
                 org_data = result.get('org').get('list')

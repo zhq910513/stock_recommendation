@@ -32,14 +32,27 @@ names = [
 # 是否显示画图
 show = False
 
-# 龙虎榜cookie   http://data.10jqka.com.cn/rank/lxsz/field/lxts/order/asc/page/1/ajax/1/free/1/
-Cookie = 'v=A1NkhtYzNcu3B_kf3VLABue84tx4COfKoZwr_gVwr3KphH2Cjdh3GrFsu08W'
+# mongo db
+db = 'stock'
+
+# mongo collections
+block_top = 'block_top'  # 最强风口
+longhu_all = 'longhu_all'  # 总榜
+longhu_capital = 'longhu_capital'  # 机构榜
+longhu_org = 'longhu_org'  # 游资榜
 
 
 class Stock:
-    def __init__(self):
-        self.stock_info_list = self.select_stocks()
+    def __init__(self, collection):
+        self.stock_info_list = self.get_yesterday_stocks(collection)
         self.stock_history = self.thread_search()
+
+    @staticmethod
+    def get_yesterday_stocks(collection, date='2022-06-20'):
+        stock_info_list = []
+        for data in MongoPipeline(collection).find({'date': date}):
+            stock_info_list.append(data)
+        return stock_info_list
 
     # 标准数据类型   high   low   aver   rate
     @staticmethod
@@ -103,63 +116,6 @@ class Stock:
         if remove_bad:
             com_list = [i for i in com_list if i is not None]
         return com_list
-
-    # 获取本期龙虎榜
-    def select_stocks(self):
-        # return [
-        #     '002988',
-        #     '000025',
-        #     '002339',
-        #     '002380',
-        #     '002272',
-        #     '002986',
-        #     '002945',
-        #     '000722',
-        #     '000756',
-        #     '002101'
-        # ]
-        return self.req_longhu_stocks()
-
-    # 龙虎榜数据
-    @staticmethod
-    def req_longhu_stocks():
-        url = 'http://data.10jqka.com.cn/rank/lxsz/field/lxts/order/asc/page/1/ajax/1/free/1/'
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Cookie': Cookie,
-            'Host': 'data.10jqka.com.cn',
-            'Pragma': 'no-cache',
-            'Referer': 'http://data.10jqka.com.cn/rank/lxsz/field/lxts/order/asc/page/1/ajax/1/free/1/',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.115 Safari/537.36'
-        }
-        resp = requests.get(url=url, headers=headers)
-        soup = BeautifulSoup(resp.text, 'lxml')
-        try:
-            stocks = []
-            for tr in soup.find_all('tr'):
-                try:
-                    stock_code = tr.find_all('td')[1].get_text()
-                    up_days = tr.find_all('td')[6].get_text()
-                    trade = tr.find_all('td')[9].get_text()
-                    if '退' in str(tr): continue
-                    if int(up_days) > r_up_days: continue
-                    if str(stock_code)[:2] not in r_filter: continue
-                    if trade not in r_trades: continue
-                    stocks.append({
-                        'stock_code': stock_code,
-                        'up_days': up_days,
-                        'stock_trade': trade
-                    })
-                except:
-                    pass
-            return stocks
-        except Exception as error:
-            log_err(error)
 
     # 东方财富历史数据
     @staticmethod
@@ -339,5 +295,5 @@ class Stock:
 
 
 if __name__ == '__main__':
-    s = Stock()
+    s = Stock(longhu_all)
     s.get_result()

@@ -48,3 +48,11 @@ r_filter = ['00']
 """当游资榜中有热门游资买入时，需根据游资操盘手法判断次日走势情况。"""
 
 """跟买胜率根据游资近三月历史交易记录综合计算得出，当跟买胜率越高，股票在游资上榜后跟买的上涨概率就越大，如果游资近一年上榜次数较少（小于10次），该数据不具有代表性。"""
+
+# 条件 表 longhu_all/表longhu_capital/longhu_org   字段 reasonList    inflow
+# 原因
+bad_reason_filter = ["资金出逃"]
+good_reason_filter = [""]
+
+# 资金
+fund = ""
