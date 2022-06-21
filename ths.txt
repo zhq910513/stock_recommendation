@@ -1,0 +1,65 @@
+Áú»¢°ñ£ºhttps://eq.10jqka.com.cn/lhbEnhanced/public/indexV2.html
+
+
+ÕÇÍ£³Ø   https://data.10jqka.com.cn/dataapi/limit_up/limit_up_pool?page=1&limit=15&field=199112,10,9001,330323,330324,330325,9002,330329,133971,133970,1968584,3475914,9003,9004&filter=HS&order_field=330324&order_type=0&date=20220621&_=1655791453890
+
+
+³å´ÌÕÇÍ£   https://data.10jqka.com.cn/dataapi/limit_up/limit_up?page=1&limit=15&field=199112,10,48,1968584,19,3475914,9003,9004&filter=HS,GEM2STAR&order_field=199112&order_type=0&date=&_=1655790877254
+
+
+Á¬°ñ³Ø   https://data.10jqka.com.cn/dataapi/limit_up/continuous_limit_pool?page=1&limit=15&field=199112,10,330329,330325,133971,133970,1968584,3475914,3541450,9004&filter=HS,GEM2STAR&order_field=330329&order_type=0&date=&_=1655790923953
+
+
+Õ¨°ñ³Ø  https://data.10jqka.com.cn/dataapi/limit_up/open_limit_pool?page=1&limit=15&field=199112,9002,48,1968584,19,3475914,9003,10,9004&filter=HS,GEM2STAR&order_field=199112&order_type=0&date=&_=1655790988222
+
+
+µøÍ£³Ø   https://data.10jqka.com.cn/dataapi/limit_up/lower_limit_pool?page=1&limit=15&field=199112,10,330333,330334,1968584,3475914,9004&filter=HS,GEM2STAR&order_field=330334&order_type=0&date=&_=1655791047086
+
+
+Host:	data.10jqka.com.cn
+Connection:	keep-alive
+Accept:	application/json, text/plain, */*
+User-Agent:	Mozilla/5.0 (Linux; Android 7.1.2; Redmi 5 Plus Build/N2G47H; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/66.0.3359.158 Mobile Safari/537.36 Hexin_Gphone/10.55.02 (Royal Flush) hxtheme/0 innerversion/G037.08.640.1.32 followPhoneSystemTheme/0 userid/-638392465 getHXAPPAccessibilityMode/0 hxNewFont/1 isVip/0 getHXAPPFontSetting/normal getHXAPPAdaptOldSetting/0
+Referer:	https://data.10jqka.com.cn/datacenterph/limitup/limtupInfo.html
+Accept-Encoding:	gzip, deflate
+Accept-Language:	zh-CN,en-US;q=0.9
+Cookie:	user=MDptdF82MzgzOTI0NjU6Ok5vbmU6NTAwOjY0ODM5MjQ2NTo3LDExMTExMTExMTExLDQwOzQ0LDExLDQwOzYsMSw0MDs1LDEsNDA7MSwxMDEsNDA7MiwxLDQwOzMsMSw0MDs1LDEsNDA7OCwwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMSw0MDsxMDIsMSw0MDo6Ojo2MzgzOTI0NjU6MTY1NTc4NDAzNDo6OjE2NTU3ODQwMDA6MjY3ODQwMDowOjE0NDI5ZDEzOWE3MWNhZDlkYTlkN2E0N2U0OTBmY2YyNzo6MA%3D%3D; userid=638392465; u_name=mt_638392465; escapename=mt_638392465; ticket=424a2d7c3e1aed962bf17ba33e1b618d; user_status=0; hxmPid=free_ztjj; v=A-NecqMjhXvj3ElPWLebfet3cCyN2HcAsWu7ThVAPoy4KQzWnagHasE8S4Ym
+X-Requested-With:	com.hexin.plat.android
+
+
+
+
+
+×îÇ¿·ç¿Ú   https://data.10jqka.com.cn/dataapi/limit_up/block_top?filter=HS&date=20220621
+
+Host:	data.10jqka.com.cn
+Connection:	keep-alive
+Accept:	application/json, text/plain, */*
+User-Agent:	Mozilla/5.0 (Linux; Android 7.1.2; Redmi 5 Plus Build/N2G47H; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/66.0.3359.158 Mobile Safari/537.36 Hexin_Gphone/10.55.02 (Royal Flush) hxtheme/0 innerversion/G037.08.640.1.32 followPhoneSystemTheme/0 userid/-638392465 getHXAPPAccessibilityMode/0 hxNewFont/1 isVip/0 getHXAPPFontSetting/normal getHXAPPAdaptOldSetting/0
+Referer:	https://data.10jqka.com.cn/datacenterph/limitup/limtupInfo.html
+Accept-Encoding:	gzip, deflate
+Accept-Language:	zh-CN,en-US;q=0.9
+Cookie:	user=MDptdF82MzgzOTI0NjU6Ok5vbmU6NTAwOjY0ODM5MjQ2NTo3LDExMTExMTExMTExLDQwOzQ0LDExLDQwOzYsMSw0MDs1LDEsNDA7MSwxMDEsNDA7MiwxLDQwOzMsMSw0MDs1LDEsNDA7OCwwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMSw0MDsxMDIsMSw0MDo6Ojo2MzgzOTI0NjU6MTY1NTc4NDAzNDo6OjE2NTU3ODQwMDA6MjY3ODQwMDowOjE0NDI5ZDEzOWE3MWNhZDlkYTlkN2E0N2U0OTBmY2YyNzo6MA%3D%3D; userid=638392465; u_name=mt_638392465; escapename=mt_638392465; ticket=424a2d7c3e1aed962bf17ba33e1b618d; user_status=0; hxmPid=free_ztjj; v=A1jlU0QajoqM1aIOHLvgjLTuK43qQbzVHq6QT5JJpNBGa_e3OlGMW261YP7h
+X-Requested-With:	com.hexin.plat.android
+
+
+
+
+
+Á¬°ñÌìÌÝ   https://data.10jqka.com.cn/dataapi/limit_up/continuous_limit_up?filter=HS&date=20220621
+
+Host:	data.10jqka.com.cn
+Connection:	keep-alive
+Accept:	application/json, text/plain, */*
+User-Agent:	Mozilla/5.0 (Linux; Android 7.1.2; Redmi 5 Plus Build/N2G47H; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/66.0.3359.158 Mobile Safari/537.36 Hexin_Gphone/10.55.02 (Royal Flush) hxtheme/0 innerversion/G037.08.640.1.32 followPhoneSystemTheme/0 userid/-638392465 getHXAPPAccessibilityMode/0 hxNewFont/1 isVip/0 getHXAPPFontSetting/normal getHXAPPAdaptOldSetting/0
+Referer:	https://data.10jqka.com.cn/datacenterph/limitup/limtupInfo.html
+Accept-Encoding:	gzip, deflate
+Accept-Language:	zh-CN,en-US;q=0.9
+Cookie:	user=MDptdF82MzgzOTI0NjU6Ok5vbmU6NTAwOjY0ODM5MjQ2NTo3LDExMTExMTExMTExLDQwOzQ0LDExLDQwOzYsMSw0MDs1LDEsNDA7MSwxMDEsNDA7MiwxLDQwOzMsMSw0MDs1LDEsNDA7OCwwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMSw0MDsxMDIsMSw0MDo6Ojo2MzgzOTI0NjU6MTY1NTc4NDAzNDo6OjE2NTU3ODQwMDA6MjY3ODQwMDowOjE0NDI5ZDEzOWE3MWNhZDlkYTlkN2E0N2U0OTBmY2YyNzo6MA%3D%3D; userid=638392465; u_name=mt_638392465; escapename=mt_638392465; ticket=424a2d7c3e1aed962bf17ba33e1b618d; user_status=0; hxmPid=free_ztjj; v=A6Adu_yy1lKUPWpWlFioJLz2c6VyqYRsJoHYdxqxbepOQ0-fwrlUA3adqCRp
+X-Requested-With:	com.hexin.plat.android
+
+
+
+
+¸ö¹ÉÕÇ·ù°ñ   https://eq.10jqka.com.cn/open/api/wencai/zhangting5.txt
+
