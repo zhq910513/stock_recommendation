@@ -33,7 +33,7 @@ names = [
 show = False
 
 # 龙虎榜cookie   http://data.10jqka.com.cn/rank/lxsz/field/lxts/order/asc/page/1/ajax/1/free/1/
-Cookie = 'v=AxAnz6nCRj_7tRo7hdHT_5A94VVn2fQjFr1IJwrh3Gs-Rb5LsunEs2bNGLZZ'
+Cookie = 'v=A1NkhtYzNcu3B_kf3VLABue84tx4COfKoZwr_gVwr3KphH2Cjdh3GrFsu08W'
 
 
 class Stock:
