@@ -23,7 +23,7 @@ names = [
 show = True
 
 # 是否入库
-save = False
+save = True
 
 # 运行时间   每天下午18：00
 

@@ -14,7 +14,7 @@ def run():
     # get_geguzhangfu_stocks()
 
     # 最后推荐结果
-    s = Stock('geguzhangfu')
+    s = Stock('lianbang')
     s.get_result()
 
 if __name__ == '__main__':
