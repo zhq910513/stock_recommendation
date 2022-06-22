@@ -233,13 +233,13 @@ class Stock:
 
         for index_type in [
             'high',
-            # 'low',
-            # 'aver',
-            # 'rate'
+            'low',
+            'aver',
+            'rate'
         ]:
             try:
                 # 保存数据
-                save_data = {'update_time': time.strftime("%Y-%m-%d", time.localtime(time.time())),'info_list': self.stock_info_list}
+                save_data = {'update_time': time.strftime("%Y-%m-%d", time.localtime(time.time()))}
                 _type_index, format_data = self.get_format_data(index_type)
 
                 names = []
