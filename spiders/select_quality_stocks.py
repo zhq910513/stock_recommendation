@@ -23,7 +23,7 @@ names = [
 show = True
 
 # 是否入库
-save = True
+save = False
 
 # 运行时间   每天下午18：00
 
@@ -174,16 +174,15 @@ class Stock:
         return new_list
 
     # 获取最近30天交易数据
-    @staticmethod
-    def get_30_days_data(_index, history_data):
+    def get_30_days_data(self, _index, history_data, format_data=None):
         new_his_data = []
         for data in history_data[-30:]:
             if isinstance(_index, float):
                 new_his_data.append(round((float(data[3]) + float(data[4])) / 2, 2))
             else:
                 new_his_data.append(round(float(data[_index]), 2))
-        return new_his_data
-        # return self.alignment_data(format_data, new_his_data)
+        # return new_his_data
+        return self.alignment_data(format_data, new_his_data)
 
     @staticmethod
     def cal_frechet_distance(curve_a: np.ndarray, curve_b: np.ndarray):
@@ -243,7 +242,7 @@ class Stock:
                 results = []
                 for stock_data in self.stock_history:
                     stock_name = stock_data['name']
-                    stock_history_data = self.get_30_days_data(_type_index, stock_data['history_data'])
+                    stock_history_data = self.get_30_days_data(_type_index, stock_data['history_data'], format_data)
                     stock_result = self.cal_frechet_distance(np.array(format_data), np.array(stock_history_data))
                     names.append(stock_name)
                     results.append(stock_result)
@@ -255,7 +254,7 @@ class Stock:
                         last_detail = stock_data['last_detail']
                         best_stock_his.append({
                             'name': stock_data['name'],
-                            'history_data': self.get_30_days_data(_type_index, stock_data['history_data'])
+                            'history_data': self.get_30_days_data(_type_index, stock_data['history_data'], format_data)
                         })
                         save_data.update({
                             'code': stock_data["code"],

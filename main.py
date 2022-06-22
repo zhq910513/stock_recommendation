@@ -5,13 +5,13 @@ from spiders.select_quality_stocks import Stock
 
 def run():
     # 获取龙虎榜
-    get_all_stocks()
+    # get_all_stocks()
 
     # 获取连榜
-    get_lianbang_stocks()
+    # get_lianbang_stocks()
 
     # 获取个股榜
-    get_geguzhangfu_stocks()
+    # get_geguzhangfu_stocks()
 
     # 最后推荐结果
     s = Stock('geguzhangfu')

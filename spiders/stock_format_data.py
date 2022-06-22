@@ -19,78 +19,6 @@ pp = pprint.PrettyPrinter(indent=4)
 
 format_list = []
 
-# 标准数据类型   high   low   aver   rate
-def get_format_data(_type):
-    if _type == 'high':
-        _type_index = 3
-        format_data = [13.99, 14.0, 13.57, 13.41, 13.38, 13.28, 13.31, 13.02, 12.53, 12.2, 11.18, 10.84, 10.85, 11.13,
-                       11.4, 11.29, 11.41, 11.52, 11.85, 11.58, 12.64, 13.18, 12.6, 12.5, 12.28, 12.36, 12.56, 12.99,
-                       13.46, 14.81]
-    elif _type == 'low':
-        _type_index = 4
-        format_data = [13.43, 13.36, 13.37, 13.03, 12.91, 13.06, 12.85, 12.32, 12.01, 11.0, 10.47, 10.06, 10.41, 10.62,
-                       10.88, 10.98, 11.18, 11.14, 11.41, 11.26, 11.46, 12.27, 12.11, 12.07, 12.0, 12.13, 12.17, 12.23,
-                       12.1, 13.17]
-    elif _type == 'aver':
-        _type_index = 3.4
-        format_data = [13.71, 13.68, 13.47, 13.22, 13.14, 13.17, 13.08, 12.67, 12.27, 11.6, 10.82, 10.45, 10.63, 10.88,
-                       11.14, 11.13, 11.29, 11.33, 11.63, 11.42, 12.05, 12.72, 12.36, 12.29, 12.14, 12.25, 12.37, 12.61,
-                       12.78, 13.99]
-    elif _type == 'rate':
-        _type_index = 8
-        format_data = [0.51, -3.95, 0.22, -2.31, 0.76, -0.23, -1.97, -4.42, -0.97, -9.98, -4.27, 2.37, -2.04, 4.73,
-                       1.99, -1.06, 1.88, 1.06, -0.61, 0.61, 10.01, -2.14, -1.7, 1.73, -1.7, 0.41, 2.87, -2.55, 9.97,
-                       10.03]
-    else:
-        _type_index = 0
-        format_data = []
-        print('暂时不支持该类型')
-    return _type_index, format_data
-_type_index, format_data = get_format_data('rate')
-
-# 相似度计算
-def handle_dtw(a, b):
-    x = len(a)
-    y = len(b)
-    dist = [[0 for i in range(x)] for j in range(y)]
-    G = [[0 for i in range(x)] for j in range(y)]
-    for j in range(y):
-        for i in range(x):
-            dist[j][i] = abs(a[i] - b[j])
-    G[0][0] = dist[0][0] * 2
-    for j in range(y - 1):
-        G[j + 1][0] = G[j][0] + dist[j + 1][0]
-    for i in range(x - 1):
-        G[0][i + 1] = G[0][i] + dist[0][i + 1]
-    for j in range(y - 1):
-        for i in range(x - 1):
-            G[j + 1][i + 1] = min((G[j][i + 1] + dist[j + 1][i + 1]), (G[j + 1][i] + dist[j + 1][i + 1]),
-                                  (G[j][i] + 2 * dist[j + 1][i + 1]))
-    return G[y - 1][x - 1]
-
-
-def find_similar_data(his_list):
-    data_list = []
-    _max = len(his_list)
-    for i in range(_max):
-        if i + 30 < _max:
-            his_rate_list = []
-            for data in his_list[i:(i + 30)]:
-                if isinstance(_type_index, float):
-                    his_data = round((round(float(data.split(',')[3]), 2) + round(float(data.split(',')[4]), 2)) / 2, 2)
-                else:
-                    his_data = round(float(data.split(',')[_type_index]), 2)
-                his_rate_list.append(his_data)
-
-            data_list.append(his_rate_list)
-    results = []
-    for stock_data in data_list:
-        stock_result = handle_dtw(format_data, stock_data)
-        results.append(stock_result)
-
-    best_stock_line = data_list[results.index(min(results))]
-    return best_stock_line
-
 
 def req_history_data(stock_code):
     url = f'http://78.push2his.eastmoney.com/api/qt/stock/kline/get' \
@@ -119,13 +47,33 @@ def req_history_data(stock_code):
     resp_data = json.loads(re.findall('\((.*?)\)', resp.text, re.S)[0]).get('data')
     his_list = resp_data.get('klines')
 
-    # similar_data = find_similar_data(his_list)
-    # format_list.append(similar_data)
-
-    high = []
     for info in his_list[-30:]:
-        high.append(round(float(info.split(',')[3]), 2))
-    print(high)
+        k_data(info.split(','))
+
+def k_data(data_list):
+    kp = round(float(data_list[1]), 2)
+    sp = round(float(data_list[2]), 2)
+    zg = round(float(data_list[3]), 2)
+    zd = round(float(data_list[4]), 2)
+
+    try:
+        st = sp - kp # 阳线表示买方力量较强，卖方力量较弱，大量买单追逐使股价走高；阴线表示卖方力量较强，买方力量较弱，大量卖单抛压使股价走低。
+        if st >= 0:
+            st_status = '阳'
+        else:
+            st_status = '阴'
+        syx = zg - sp  # 上影线越长，卖方抛压力量越大，股价上升的阻力也越大
+        xyx = zd - sp  # 下影线越长，买单追逐的力量越强。投资者趁机购进股票，股价抗跌的能力就会增强
+        if syx == 0:
+            msg = '实体上部封顶'
+        elif xyx == 0:
+            msg = '实体下部封顶'
+        else:
+            msg = '“中”字形'
+
+        print(f'{data_list[0]} 为 {st_status}线, 涨跌幅 {data_list[-3]}, 实体：{round(st,2)}, 上影线：{round(syx,2)}, 下影线：{round(xyx,2)}, {msg}')
+    except Exception as error:
+        print(error)
 
 if __name__ == '__main__':
     # stocks = [
@@ -152,4 +100,4 @@ if __name__ == '__main__':
     #     new_format_data.append(round(mean(_index_data_list), 2))
     #
     # print(new_format_data)
-    req_history_data('000788')
+    req_history_data('000025')
