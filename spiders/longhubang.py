@@ -27,7 +27,13 @@ longhu_capital = 'longhu_capital'  # 机构榜
 longhu_org = 'longhu_org'  # 游资榜
 
 
-def get_all_stocks(date='2022-06-21'):
+def get_all_stocks(date=None):
+    if not date:
+        hour_now = int(time.strftime("%H", time.localtime(time.time())))
+        if hour_now >= 18:
+            date = time.strftime("%Y-%m-%d", time.localtime(time.time()))
+        else:
+            date = time.strftime("%Y-%m-%d", time.localtime(time.time() - 86400))
     url = f'https://eq.10jqka.com.cn/lhbclient/data/method/indexData/date/{date}/'
     headers = {
         'Accept': 'application/json',
@@ -47,7 +53,6 @@ def get_all_stocks(date='2022-06-21'):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36',
         'X-Requested-With': 'XMLHttpRequest'
     }
-
     try:
         req = requests.get(url=url, headers=headers, verify=False)
         if req.status_code == 200:
@@ -58,9 +63,9 @@ def get_all_stocks(date='2022-06-21'):
                 print(f'---------- {date} 龙虎榜 {len(all_data)} 只 ----------')
                 for data in all_data:
                     try:
-                        if data['marketId'] not in r_market_filter: continue
+                        if str(data['stockCode'])[:3] not in r_market_filter: continue
                         hash_key = hashlib.md5((date + data['stockCode']).encode("utf8")).hexdigest()
-                        data.update({'hash_key': hash_key, 'date': date})
+                        data.update({'hash_key': hash_key, 'date': date, 'code': data['stockCode']})
                         MongoPipeline(longhu_all).update_item({'hash_key': None}, data)
                     except:
                         pass
@@ -70,9 +75,9 @@ def get_all_stocks(date='2022-06-21'):
                 print(f'---------- {date} 机构榜 {len(capital_data)} 只 ----------')
                 for data in capital_data:
                     try:
-                        if data['marketId'] not in r_market_filter: continue
+                        if str(data['stockCode'])[:3] not in r_market_filter: continue
                         hash_key = hashlib.md5((date + data['stockCode']).encode("utf8")).hexdigest()
-                        data.update({'hash_key': hash_key, 'date': date})
+                        data.update({'hash_key': hash_key, 'date': date, 'code': data['stockCode']})
                         MongoPipeline(longhu_capital).update_item({'hash_key': None}, data)
                     except:
                         pass
@@ -82,9 +87,9 @@ def get_all_stocks(date='2022-06-21'):
                 print(f'---------- {date} 游资榜 {len(org_data)} 只 ----------')
                 for data in org_data:
                     try:
-                        if data['marketId'] not in r_market_filter: continue
+                        if str(data['stockCode'])[:3] not in r_market_filter: continue
                         hash_key = hashlib.md5((date + data.get('stockCode')).encode("utf8")).hexdigest()
-                        data.update({'hash_key': hash_key, 'date': date})
+                        data.update({'hash_key': hash_key, 'date': date, 'code': data['stockCode']})
                         MongoPipeline(longhu_org).update_item({'hash_key': None}, data)
                     except:
                         pass
@@ -95,5 +100,9 @@ def get_all_stocks(date='2022-06-21'):
 
 
 if __name__ == '__main__':
-    date_now = time.strftime("%Y-%m-%d", time.localtime(time.time()))
-    get_all_stocks(date_now)
+    # date_now = time.strftime("%Y-%m-%d", time.localtime(time.time()))
+    for date_now in [
+        '2022-06-01', '2022-06-02', '2022-06-06', '2022-06-07', '2022-06-08', '2022-06-09', '2022-06-10', '2022-06-13',
+        '2022-06-14','2022-06-15', '2022-06-16', '2022-06-17', '2022-06-20', '2022-06-21'
+    ]:
+        get_all_stocks(date_now)

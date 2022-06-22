@@ -48,7 +48,6 @@ def get_lianbang_stocks():
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Cookie': 'v=A3tMDm4LnTD3XKGEzaYYDv_0ClTg0I_SieRThm04V3qRzJUK9aAfIpm049h-',
         'Host': 'data.10jqka.com.cn',
         'Pragma': 'no-cache',
         'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="102", "Google Chrome";v="102"',
@@ -61,7 +60,6 @@ def get_lianbang_stocks():
         'Upgrade-Insecure-Requests': '1',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'
     }
-
     try:
         req = requests.get(url=url, headers=headers, params=urlencode(params), verify=False)
         if req.status_code == 200:
@@ -71,7 +69,7 @@ def get_lianbang_stocks():
                 print(f'---------- {date} 连榜 {len(all_data)} 只 ----------')
                 for data in all_data:
                     try:
-                        if data['market_id'] not in r_market_filter: continue
+                        if str(data['code'])[:3] not in r_market_filter: continue
                         hash_key = hashlib.md5((date + data['code']).encode("utf8")).hexdigest()
                         data.update({'hash_key': hash_key, 'date': date})
                         MongoPipeline(lianbang).update_item({'hash_key': None}, data)

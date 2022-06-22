@@ -10,12 +10,13 @@ import hashlib
 # from bs4 import BeautifulSoup
 # from pylab import *
 import pprint
+import time
 
 import requests
 
 from common.log_out import log_err
 from dbs.pipelines import MongoPipeline
-from rules import r_market_filter
+# from rules import r_market_filter
 
 requests.packages.urllib3.disable_warnings()
 pp = pprint.PrettyPrinter(indent=4)
@@ -34,7 +35,12 @@ block_top = 'block_top'  # 最强风口
 # 查询条件   $or date + name + code
 
 
-def get_block_top_stocks(date='20220601'):
+def get_block_top_stocks(date=None):
+    hour_now = int(time.strftime("%H", time.localtime(time.time())))
+    if hour_now >= 18:
+        date = time.strftime("%Y%m%d", time.localtime(time.time()))
+    else:
+        date = time.strftime("%Y%m%d", time.localtime(time.time() - 86400))
     url = f'https://data.10jqka.com.cn/dataapi/limit_up/block_top?filter=HS&date={date}'
     headers = {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
@@ -54,7 +60,6 @@ def get_block_top_stocks(date='20220601'):
         'Upgrade-Insecure-Requests': '1',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'
     }
-
     try:
         req = requests.get(url=url, headers=headers, verify=False)
         if req.status_code == 200:
@@ -73,13 +78,14 @@ def get_block_top_stocks(date='20220601'):
                         'name': type_info['name']
                     }
                     stock_list = type_info['stock_list']
-                    print(f'---------- {base_info["name"]} 板块 最强风口 {len(stock_list)} 只 ----------')
+                    print(f'---------- {date} {base_info["name"]} 板块 最强风口 {len(stock_list)} 只 ----------')
                     for stock in stock_list:
                         stock.update(base_info)
                         try:
-                            if stock['market_id'] not in r_market_filter: continue
+                            # if str(stock['code'])[:2] not in r_market_filter: continue
                             hash_key = hashlib.md5((stock['date'] + stock['name'] + stock['code']).encode("utf8")).hexdigest()
                             stock.update({'hash_key': hash_key})
+                            # print(stock)
                             MongoPipeline(block_top).update_item({'hash_key': None}, stock)
                         except:
                             pass
@@ -90,7 +96,4 @@ def get_block_top_stocks(date='20220601'):
 
 
 if __name__ == '__main__':
-    # date_now = time.strftime("%Y-%m-%d", time.localtime(time.time()))
-    # get_block_top_stocks(date_now)
-
     get_block_top_stocks()

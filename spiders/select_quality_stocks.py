@@ -23,7 +23,7 @@ names = [
 show = True
 
 # 是否入库
-save = False
+save = True
 
 # 运行时间   每天下午18：00
 
@@ -31,7 +31,7 @@ save = False
 db = 'stock'
 
 # mongo collections
-block_top = 'block_top'  # 最强风口
+lianbang = 'lianbang' # 连榜
 longhu_all = 'longhu_all'  # 总榜
 longhu_capital = 'longhu_capital'  # 机构榜
 longhu_org = 'longhu_org'  # 游资榜
@@ -44,7 +44,7 @@ class Stock:
 
     @staticmethod
     def get_longhu_stocks(collection):
-        if collection == 'block_top':
+        if collection == 'lianbang':
             stf = "%Y%m%d"
         else:
             stf = "%Y-%m-%d"
@@ -127,7 +127,7 @@ class Stock:
         try:
             url = f'http://78.push2his.eastmoney.com/api/qt/stock/kline/get' \
                   f'?cb=jQuery' \
-                  f'&secid=0.{stock_info["stockCode"]}' \
+                  f'&secid=0.{stock_info["code"]}' \
                   f'&ut=fa5fd1943c7b386f172d6893dbfba10b' \
                   f'&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6' \
                   f'&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61' \
@@ -155,11 +155,11 @@ class Stock:
             last_price = resp_data.get('klines')[-1].split(',')
             last_detail = dict(zip(names, last_price))
             data = {
-                'stock_code': stock_info["stockCode"],
-                'stock_trade': None,
+                'code': stock_info["code"],
+                'trade': None,
                 'up_days': None,
-                'stock_name': stock_name,
-                'stock_history_data': his_data,
+                'name': stock_name,
+                'history_data': his_data,
                 'last_detail': last_detail
             }
             return data
@@ -239,15 +239,14 @@ class Stock:
         ]:
             try:
                 # 保存数据
-                save_data = {'update_time': time.strftime("%Y-%m-%d", time.localtime(time.time())),
-                             'stock_info_list': self.stock_info_list}
+                save_data = {'update_time': time.strftime("%Y-%m-%d", time.localtime(time.time())),'info_list': self.stock_info_list}
                 _type_index, format_data = self.get_format_data(index_type)
 
                 names = []
                 results = []
                 for stock_data in self.stock_history:
-                    stock_name = stock_data['stock_name']
-                    stock_history_data = self.get_30_days_data(_type_index, stock_data['stock_history_data'])
+                    stock_name = stock_data['name']
+                    stock_history_data = self.get_30_days_data(_type_index, stock_data['history_data'])
                     stock_result = self.cal_frechet_distance(np.array(format_data), np.array(stock_history_data))
                     names.append(stock_name)
                     results.append(stock_result)
@@ -255,22 +254,22 @@ class Stock:
                 best_stock_name = names[results.index(best_result)]
                 best_stock_his = []
                 for stock_data in self.stock_history:
-                    if stock_data.get('stock_name') == best_stock_name:
+                    if stock_data.get('name') == best_stock_name:
                         last_detail = stock_data['last_detail']
                         best_stock_his.append({
-                            'stock_name': stock_data['stock_name'],
-                            'stock_history_data': self.get_30_days_data(_type_index, stock_data['stock_history_data'])
+                            'name': stock_data['name'],
+                            'history_data': self.get_30_days_data(_type_index, stock_data['history_data'])
                         })
                         save_data.update({
-                            'best_stock_code': stock_data["stock_code"],
-                            'best_stock_name': best_stock_name,
-                            'trade': stock_data["stock_trade"],
+                            'code': stock_data["code"],
+                            'name': best_stock_name,
+                            'trade': stock_data["trade"],
                             'up_days': stock_data["up_days"],
                             'type': [index_type],
                             'match': round(float(best_result), 2)
                         })
                         save_data.update(last_detail)
-                        log(f'本期最接近标准线的是：{stock_data["stock_code"]} {best_stock_name}\n最后收盘信息：{last_detail}')
+                        log(f'本期最接近标准线的是：{stock_data["code"]} {best_stock_name}\n最后收盘信息：{last_detail}')
 
                 # 画图
                 if show:
@@ -278,7 +277,7 @@ class Stock:
 
                 # save
                 if save:
-                    MongoPipeline('daily_info_1').update_item({'update_time': None, 'best_stock_code': None}, save_data)
+                    MongoPipeline('daily_info').update_item({'update_time': None, 'code': None}, save_data)
             except Exception as error:
                 log_err(error)
 
@@ -293,12 +292,12 @@ class Stock:
 
         # 画其他数据线
         for stock_data in stock_list:
-            plt.plot(x, stock_data['stock_history_data'], linestyle='--', label=stock_data['stock_name'])
+            plt.plot(x, stock_data['history_data'], linestyle='--', label=stock_data['name'])
 
         plt.legend(loc=0)
         plt.show()
 
 
 if __name__ == '__main__':
-    s = Stock(longhu_all)
+    s = Stock(lianbang)
     s.get_result()
