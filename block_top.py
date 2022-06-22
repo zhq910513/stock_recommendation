@@ -14,7 +14,8 @@ import pprint
 import requests
 
 from common.log_out import log_err
-from pipelines import MongoPipeline
+from dbs.pipelines import MongoPipeline
+from rules import r_market_filter
 
 requests.packages.urllib3.disable_warnings()
 pp = pprint.PrettyPrinter(indent=4)
@@ -76,8 +77,8 @@ def get_block_top_stocks(date='20220601'):
                     for stock in stock_list:
                         stock.update(base_info)
                         try:
-                            hash_key = hashlib.md5(
-                                (stock['date'] + stock['name'] + stock['code']).encode("utf8")).hexdigest()
+                            if stock['market_id'] not in r_market_filter: continue
+                            hash_key = hashlib.md5((stock['date'] + stock['name'] + stock['code']).encode("utf8")).hexdigest()
                             stock.update({'hash_key': hash_key})
                             MongoPipeline(block_top).update_item({'hash_key': None}, stock)
                         except:

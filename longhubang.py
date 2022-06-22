@@ -1,28 +1,22 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-
-# import json
-# import pprint
-# from multiprocessing.pool import ThreadPool
-#
 import hashlib
-# from bs4 import BeautifulSoup
-# from pylab import *
 import pprint
 import time
 
 import requests
 
 from common.log_out import log_err
-from pipelines import MongoPipeline
+from dbs.pipelines import MongoPipeline
+from rules import r_market_filter
 
 requests.packages.urllib3.disable_warnings()
 pp = pprint.PrettyPrinter(indent=4)
 
 # https://eq.10jqka.com.cn/lhbEnhanced/public/indexV2.html
 
-# 运行时间   每天早上8：00
+# 运行时间   每天下午18：00
 
 # mongo db
 db = 'stock'
@@ -33,7 +27,7 @@ longhu_capital = 'longhu_capital'  # 机构榜
 longhu_org = 'longhu_org'  # 游资榜
 
 
-def get_all_stocks(date='2022-06-20'):
+def get_all_stocks(date='2022-06-21'):
     url = f'https://eq.10jqka.com.cn/lhbclient/data/method/indexData/date/{date}/'
     headers = {
         'Accept': 'application/json',
@@ -64,6 +58,7 @@ def get_all_stocks(date='2022-06-20'):
                 print(f'---------- {date} 龙虎榜 {len(all_data)} 只 ----------')
                 for data in all_data:
                     try:
+                        if data['marketId'] not in r_market_filter: continue
                         hash_key = hashlib.md5((date + data['stockCode']).encode("utf8")).hexdigest()
                         data.update({'hash_key': hash_key, 'date': date})
                         MongoPipeline(longhu_all).update_item({'hash_key': None}, data)
@@ -75,6 +70,7 @@ def get_all_stocks(date='2022-06-20'):
                 print(f'---------- {date} 机构榜 {len(capital_data)} 只 ----------')
                 for data in capital_data:
                     try:
+                        if data['marketId'] not in r_market_filter: continue
                         hash_key = hashlib.md5((date + data['stockCode']).encode("utf8")).hexdigest()
                         data.update({'hash_key': hash_key, 'date': date})
                         MongoPipeline(longhu_capital).update_item({'hash_key': None}, data)
@@ -86,6 +82,7 @@ def get_all_stocks(date='2022-06-20'):
                 print(f'---------- {date} 游资榜 {len(org_data)} 只 ----------')
                 for data in org_data:
                     try:
+                        if data['marketId'] not in r_market_filter: continue
                         hash_key = hashlib.md5((date + data.get('stockCode')).encode("utf8")).hexdigest()
                         data.update({'hash_key': hash_key, 'date': date})
                         MongoPipeline(longhu_org).update_item({'hash_key': None}, data)

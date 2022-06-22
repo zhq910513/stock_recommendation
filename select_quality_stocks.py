@@ -1,28 +1,18 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-"""
-@author: the king
-@project: stock_recommendation
-@file: stock_format_data.py
-@time: 2022/6/11 16:30
-"""
-
 import json
 import pprint
 from multiprocessing.pool import ThreadPool
 
 import requests
-from bs4 import BeautifulSoup
 from pylab import *
 
 from common.log_out import log, log_err
-from pipelines import MongoPipeline
-from rules import *
+from dbs.pipelines import MongoPipeline
 
 mpl.rcParams['font.sans-serif'] = ['SimHei']  # 指定默认字体（解决中文无法显示的问题）
 mpl.rcParams['axes.unicode_minus'] = False  # 解决保存图像时负号“-”显示方块的问题
-
 pp = pprint.PrettyPrinter(indent=4)
 
 names = [
@@ -30,16 +20,43 @@ names = [
 ]
 
 # 是否显示画图
-show = False
+show = True
 
-# 龙虎榜cookie   http://data.10jqka.com.cn/rank/lxsz/field/lxts/order/asc/page/1/ajax/1/free/1/
-Cookie = 'v=A1NkhtYzNcu3B_kf3VLABue84tx4COfKoZwr_gVwr3KphH2Cjdh3GrFsu08W'
+# 是否入库
+save = False
+
+# 运行时间   每天下午18：00
+
+# mongo db
+db = 'stock'
+
+# mongo collections
+block_top = 'block_top'  # 最强风口
+longhu_all = 'longhu_all'  # 总榜
+longhu_capital = 'longhu_capital'  # 机构榜
+longhu_org = 'longhu_org'  # 游资榜
 
 
 class Stock:
-    def __init__(self):
-        self.stock_info_list = self.select_stocks()
+    def __init__(self, collection):
+        self.stock_info_list = self.get_longhu_stocks(collection)
         self.stock_history = self.thread_search()
+
+    @staticmethod
+    def get_longhu_stocks(collection):
+        if collection == 'block_top':
+            stf = "%Y%m%d"
+        else:
+            stf = "%Y-%m-%d"
+        hour_now = int(time.strftime("%H", time.localtime(time.time())))
+        if hour_now >= 18:
+            date_now = time.strftime(stf, time.localtime(time.time()))
+        else:
+            date_now = time.strftime(stf, time.localtime(time.time() - 86400))
+        stock_info_list = []
+        for data in MongoPipeline(collection).find({'date': date_now}):
+            stock_info_list.append(data)
+        return stock_info_list
 
     # 标准数据类型   high   low   aver   rate
     @staticmethod
@@ -76,7 +93,7 @@ class Stock:
         return _type_index, format_data
 
     # 多线程处理数据
-    def thread_search(self, remove_bad=False, Async=True):
+    def thread_search(self, remove_bad=True, Async=True):
         thread_list = []
 
         # 设置进程数
@@ -104,70 +121,13 @@ class Stock:
             com_list = [i for i in com_list if i is not None]
         return com_list
 
-    # 获取本期龙虎榜
-    def select_stocks(self):
-        # return [
-        #     '002988',
-        #     '000025',
-        #     '002339',
-        #     '002380',
-        #     '002272',
-        #     '002986',
-        #     '002945',
-        #     '000722',
-        #     '000756',
-        #     '002101'
-        # ]
-        return self.req_longhu_stocks()
-
-    # 龙虎榜数据
-    @staticmethod
-    def req_longhu_stocks():
-        url = 'http://data.10jqka.com.cn/rank/lxsz/field/lxts/order/asc/page/1/ajax/1/free/1/'
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Cookie': Cookie,
-            'Host': 'data.10jqka.com.cn',
-            'Pragma': 'no-cache',
-            'Referer': 'http://data.10jqka.com.cn/rank/lxsz/field/lxts/order/asc/page/1/ajax/1/free/1/',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.115 Safari/537.36'
-        }
-        resp = requests.get(url=url, headers=headers)
-        soup = BeautifulSoup(resp.text, 'lxml')
-        try:
-            stocks = []
-            for tr in soup.find_all('tr'):
-                try:
-                    stock_code = tr.find_all('td')[1].get_text()
-                    up_days = tr.find_all('td')[6].get_text()
-                    trade = tr.find_all('td')[9].get_text()
-                    if '退' in str(tr): continue
-                    if int(up_days) > r_up_days: continue
-                    if str(stock_code)[:2] not in r_filter: continue
-                    if trade not in r_trades: continue
-                    stocks.append({
-                        'stock_code': stock_code,
-                        'up_days': up_days,
-                        'stock_trade': trade
-                    })
-                except:
-                    pass
-            return stocks
-        except Exception as error:
-            log_err(error)
-
     # 东方财富历史数据
     @staticmethod
     def req_history_data(stock_info):
         try:
             url = f'http://78.push2his.eastmoney.com/api/qt/stock/kline/get' \
                   f'?cb=jQuery' \
-                  f'&secid=0.{stock_info["stock_code"]}' \
+                  f'&secid=0.{stock_info["stockCode"]}' \
                   f'&ut=fa5fd1943c7b386f172d6893dbfba10b' \
                   f'&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6' \
                   f'&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61' \
@@ -194,14 +154,15 @@ class Stock:
                 his_data.append(h.split(','))
             last_price = resp_data.get('klines')[-1].split(',')
             last_detail = dict(zip(names, last_price))
-            return {
-                'stock_code': stock_info["stock_code"],
-                'stock_trade': stock_info["stock_trade"],
-                'up_days': stock_info["up_days"],
+            data = {
+                'stock_code': stock_info["stockCode"],
+                'stock_trade': None,
+                'up_days': None,
                 'stock_name': stock_name,
                 'stock_history_data': his_data,
                 'last_detail': last_detail
             }
+            return data
         except Exception as error:
             log_err(error)
 
@@ -216,38 +177,53 @@ class Stock:
         return new_list
 
     # 获取最近30天交易数据
-    def get_30_days_data(self, _index, history_data, format_data):
+    @staticmethod
+    def get_30_days_data(_index, history_data):
         new_his_data = []
         for data in history_data[-30:]:
             if isinstance(_index, float):
                 new_his_data.append(round((float(data[3]) + float(data[4])) / 2, 2))
             else:
                 new_his_data.append(round(float(data[_index]), 2))
-        return self.alignment_data(format_data, new_his_data)
+        return new_his_data
+        # return self.alignment_data(format_data, new_his_data)
 
-    # 相似度计算
     @staticmethod
-    def handle_dtw(a, b):
-        try:
-            x = len(a)
-            y = len(b)
-            dist = [[0 for i in range(x)] for j in range(y)]
-            G = [[0 for i in range(x)] for j in range(y)]
-            for j in range(y):
-                for i in range(x):
-                    dist[j][i] = abs(a[i] - b[j])
-            G[0][0] = dist[0][0] * 2
-            for j in range(y - 1):
-                G[j + 1][0] = G[j][0] + dist[j + 1][0]
-            for i in range(x - 1):
-                G[0][i + 1] = G[0][i] + dist[0][i + 1]
-            for j in range(y - 1):
-                for i in range(x - 1):
-                    G[j + 1][i + 1] = min((G[j][i + 1] + dist[j + 1][i + 1]), (G[j + 1][i] + dist[j + 1][i + 1]),
-                                          (G[j][i] + 2 * dist[j + 1][i + 1]))
-            return G[y - 1][x - 1]
-        except Exception as error:
-            log_err(error)
+    def cal_frechet_distance(curve_a: np.ndarray, curve_b: np.ndarray):
+        # 距离公式，两个坐标作差，平方，累加后开根号
+        def euc_dist(pt1, pt2):
+            return np.sqrt(np.square(pt2[0] - pt1[0]) + np.square(pt2[1] - pt1[1]))
+
+        # 用递归方式计算，遍历整个ca矩阵
+        def _c(ca, i, j, P, Q):  # 从ca左上角开始计算，这里用堆的方法把计算序列从右下角压入到左上角，实际计算时是从左上角开始
+            if ca[i, j] > -1:
+                return ca[i, j]
+            elif i == 0 and j == 0:  # 走到最左上角，只会计算一次
+                ca[i, j] = euc_dist(P[0], Q[0])
+            elif i > 0 and j == 0:  # 沿着Q的边边走
+                ca[i, j] = max(_c(ca, i - 1, 0, P, Q), euc_dist(P[i], Q[0]))
+            elif i == 0 and j > 0:  # 沿着P的边边走
+                ca[i, j] = max(_c(ca, 0, j - 1, P, Q), euc_dist(P[0], Q[j]))
+            elif i > 0 and j > 0:  # 核心代码：在ca矩阵中间走，寻找对齐路径
+                ca[i, j] = max(min(_c(ca, i - 1, j, P, Q),  # 正上方
+                                   _c(ca, i - 1, j - 1, P, Q),  # 斜左上角
+                                   _c(ca, i, j - 1, P, Q)),  # 正左方
+                               euc_dist(P[i], Q[j]))
+            else:  # 非法的无效数据，算法中不考虑，此时 i<0,j<0
+                ca[i, j] = float("inf")
+            return ca[i, j]
+
+        # 这个是给我们调用的方法
+        def frechet_distance(P, Q):
+            ca = np.ones((len(P), len(Q)))
+            ca = np.multiply(ca, -1)
+            dis = _c(ca, len(P) - 1, len(Q) - 1, P, Q)  # ca为全-1的矩阵，shape = ( len(a), len(b) )
+            return dis
+
+        # 这里构造计算序列
+        curve_line_a = list(zip(range(len(curve_a)), curve_a))
+        curve_line_b = list(zip(range(len(curve_b)), curve_b))
+        return frechet_distance(curve_line_a, curve_line_b)
 
     # 获取曲线相似度结果
     def get_result(self):
@@ -257,9 +233,9 @@ class Stock:
 
         for index_type in [
             'high',
-            'low',
-            'aver',
-            'rate'
+            # 'low',
+            # 'aver',
+            # 'rate'
         ]:
             try:
                 # 保存数据
@@ -271,9 +247,8 @@ class Stock:
                 results = []
                 for stock_data in self.stock_history:
                     stock_name = stock_data['stock_name']
-                    stock_history_data = self.get_30_days_data(_type_index, stock_data['stock_history_data'],
-                                                               format_data)
-                    stock_result = self.handle_dtw(format_data, stock_history_data)
+                    stock_history_data = self.get_30_days_data(_type_index, stock_data['stock_history_data'])
+                    stock_result = self.cal_frechet_distance(np.array(format_data), np.array(stock_history_data))
                     names.append(stock_name)
                     results.append(stock_result)
                 best_result = min(results)
@@ -284,8 +259,7 @@ class Stock:
                         last_detail = stock_data['last_detail']
                         best_stock_his.append({
                             'stock_name': stock_data['stock_name'],
-                            'stock_history_data': self.get_30_days_data(_type_index, stock_data['stock_history_data'],
-                                                                        format_data)
+                            'stock_history_data': self.get_30_days_data(_type_index, stock_data['stock_history_data'])
                         })
                         save_data.update({
                             'best_stock_code': stock_data["stock_code"],
@@ -293,7 +267,7 @@ class Stock:
                             'trade': stock_data["stock_trade"],
                             'up_days': stock_data["up_days"],
                             'type': [index_type],
-                            'match': best_result
+                            'match': round(float(best_result), 2)
                         })
                         save_data.update(last_detail)
                         log(f'本期最接近标准线的是：{stock_data["stock_code"]} {best_stock_name}\n最后收盘信息：{last_detail}')
@@ -303,7 +277,8 @@ class Stock:
                     self.draw(format_data, best_stock_his)
 
                 # save
-                MongoPipeline('daily_info').update_item({'update_time': None, 'best_stock_code': None}, save_data)
+                if save:
+                    MongoPipeline('daily_info_1').update_item({'update_time': None, 'best_stock_code': None}, save_data)
             except Exception as error:
                 log_err(error)
 
@@ -325,5 +300,5 @@ class Stock:
 
 
 if __name__ == '__main__':
-    s = Stock()
+    s = Stock(longhu_all)
     s.get_result()
