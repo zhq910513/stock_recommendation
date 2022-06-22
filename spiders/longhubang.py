@@ -65,7 +65,7 @@ def get_all_stocks(date=None):
                     try:
                         if str(data['stockCode'])[:3] not in r_market_filter: continue
                         hash_key = hashlib.md5((date + data['stockCode']).encode("utf8")).hexdigest()
-                        data.update({'hash_key': hash_key, 'date': date, 'code': data['stockCode']})
+                        data.update({'hash_key': hash_key, 'date': date.replace('-', ''), 'code': data['stockCode']})
                         MongoPipeline(longhu_all).update_item({'hash_key': None}, data)
                     except:
                         pass
@@ -77,7 +77,7 @@ def get_all_stocks(date=None):
                     try:
                         if str(data['stockCode'])[:3] not in r_market_filter: continue
                         hash_key = hashlib.md5((date + data['stockCode']).encode("utf8")).hexdigest()
-                        data.update({'hash_key': hash_key, 'date': date, 'code': data['stockCode']})
+                        data.update({'hash_key': hash_key, 'date': date.replace('-', ''), 'code': data['stockCode']})
                         MongoPipeline(longhu_capital).update_item({'hash_key': None}, data)
                     except:
                         pass
@@ -89,7 +89,7 @@ def get_all_stocks(date=None):
                     try:
                         if str(data['stockCode'])[:3] not in r_market_filter: continue
                         hash_key = hashlib.md5((date + data.get('stockCode')).encode("utf8")).hexdigest()
-                        data.update({'hash_key': hash_key, 'date': date, 'code': data['stockCode']})
+                        data.update({'hash_key': hash_key, 'date': date.replace('-', ''), 'code': data['stockCode']})
                         MongoPipeline(longhu_org).update_item({'hash_key': None}, data)
                     except:
                         pass

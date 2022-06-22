@@ -31,6 +31,7 @@ save = True
 db = 'stock'
 
 # mongo collections
+geguzhangfu = 'geguzhangfu'  # 个股涨幅
 lianbang = 'lianbang' # 连榜
 longhu_all = 'longhu_all'  # 总榜
 longhu_capital = 'longhu_capital'  # 机构榜
@@ -44,15 +45,11 @@ class Stock:
 
     @staticmethod
     def get_longhu_stocks(collection):
-        if collection == 'lianbang':
-            stf = "%Y%m%d"
-        else:
-            stf = "%Y-%m-%d"
         hour_now = int(time.strftime("%H", time.localtime(time.time())))
         if hour_now >= 18:
-            date_now = time.strftime(stf, time.localtime(time.time()))
+            date_now = time.strftime("%Y%m%d", time.localtime(time.time()))
         else:
-            date_now = time.strftime(stf, time.localtime(time.time() - 86400))
+            date_now = time.strftime("%Y%m%d", time.localtime(time.time() - 86400))
         stock_info_list = []
         for data in MongoPipeline(collection).find({'date': date_now}):
             stock_info_list.append(data)
