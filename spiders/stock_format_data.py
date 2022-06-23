@@ -7,7 +7,7 @@
 @file: stock_format_data.py
 @time: 2022/6/11 16:30
 """
-import json
+import json,copy
 import pprint
 import re
 import time
@@ -18,6 +18,37 @@ from numpy import *
 pp = pprint.PrettyPrinter(indent=4)
 
 format_list = []
+
+"""
+十字线
+大十字线
+上影十字线
+下影十字线
+
+T字线
+倒T字线
+
+锤头线
+倒锤头线
+
+一字线
+
+大阳线
+大阳下影线（阳锤头线）
+大阳上影线
+
+小阳线
+小阳上影线
+小阳下影线
+
+大阴线
+大阴下影线
+大阴上影线
+
+小阴线
+小阴上影线
+小阴下影线
+"""
 
 
 def req_history_data(stock_code):
@@ -45,35 +76,153 @@ def req_history_data(stock_code):
     }
     resp = requests.get(url=url, headers=headers)
     resp_data = json.loads(re.findall('\((.*?)\)', resp.text, re.S)[0]).get('data')
-    his_list = resp_data.get('klines')
+    his_list = resp_data.get('klines')[-30:]
 
-    for info in his_list[-30:]:
-        k_data(info.split(','))
+    max_len = len(his_list)
+    for num, info in enumerate(his_list):
+        if 1 < num < (max_len-1):
+            font_2 = his_list[num - 2].split(',')
+            font_1 = his_list[num - 1].split(',')
+            data = info.split(',')
+            k_data(font_2, font_1, data)
 
-def k_data(data_list):
-    kp = round(float(data_list[1]), 2)
-    sp = round(float(data_list[2]), 2)
-    zg = round(float(data_list[3]), 2)
-    zd = round(float(data_list[4]), 2)
+    # k_data(his_list[0].split(','), his_list[1].split(','), his_list[2].split(','))
+
+
+def analysis_data(data:list):
+    kp = float(data[1])
+    sp = float(data[2])
+    zg = float(data[3])
+    zd = float(data[4])
+    zdf = float(data[8])
+    format_status = {
+        'a':'倒T字',
+        'b': 'T字',
+        'c': '一字',
+        'd': '大阳 短下影线',
+        'e': '大阳 锤头线',
+        'f': '大阴 短下影线',
+        'g': '大阴 锤头线',
+        'h': '大阳 短上影线',
+        'i': '大阴 短上影线',
+        'j': '双头大阳线',
+        'k': '大阳 双头 上影线',
+        'l': '大阳 双头 下影线',
+        'm': '双头大阴线',
+        'n':'大阴 双头 上影线',
+        '0':'大阴 双头 下影线'
+    }
 
     try:
-        st = sp - kp # 阳线表示买方力量较强，卖方力量较弱，大量买单追逐使股价走高；阴线表示卖方力量较强，买方力量较弱，大量卖单抛压使股价走低。
-        if st >= 0:
-            st_status = '阳'
-        else:
-            st_status = '阴'
-        syx = zg - sp  # 上影线越长，卖方抛压力量越大，股价上升的阻力也越大
-        xyx = zd - sp  # 下影线越长，买单追逐的力量越强。投资者趁机购进股票，股价抗跌的能力就会增强
-        if syx == 0:
-            msg = '实体上部封顶'
-        elif xyx == 0:
-            msg = '实体下部封顶'
-        else:
-            msg = '“中”字形'
+        st = abs(sp - kp)
+        syx = abs(zg - sp)
+        xyx = abs(zd - sp)
 
-        print(f'{data_list[0]} 为 {st_status}线, 涨跌幅 {data_list[-3]}, 实体：{round(st,2)}, 上影线：{round(syx,2)}, 下影线：{round(xyx,2)}, {msg}')
+
+        if st == 0:
+            if syx > 0 and xyx == 0:
+                status = 'a'
+            elif syx == 0 and xyx > 0:
+                status = 'b'
+            else:
+                status = 'c'
+        else:
+            if syx != 0:
+                syx_rate = round(syx / st, 2)
+            else:
+                syx_rate = 0
+            if xyx != 0:
+                xyx_rate = round(xyx / st, 2)
+            else:
+                xyx_rate = 0
+            if syx == 0 and xyx != 0:
+                if zdf > 0:
+                    if xyx_rate > 0.3:
+                        status = 'd'
+                    else:
+                        status = 'e'
+                elif zdf < 0:
+                    if xyx_rate > 0.3:
+                        status = 'f'
+                    else:
+                        status = 'g'
+                else:
+                    status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
+            elif syx != 0 and xyx == 0:
+                if zdf > 0:
+                    if xyx_rate > 0.3:
+                        status = 'h'
+                    else:
+                        status = 'e'
+                elif zdf < 0:
+                    if xyx_rate > 0.3:
+                        status = 'i'
+                    else:
+                        status = 'g'
+                else:
+                    status = f'[st!=0,syx!=0,xyx==0,zdf==0]{data}'
+            elif syx != 0 and xyx != 0:
+                if zdf > 0:
+                    if syx_rate <= 0.3 and xyx <= 0.3:
+                        status = 'j'
+                    else:
+                        if syx > xyx:
+                            status = 'k'
+                        else:
+                            status = 'l'
+                elif zdf < 0:
+                    if syx_rate <= 0.3 and xyx <= 0.3:
+                        status = 'm'
+                    else:
+                        if syx > xyx:
+                            status = 'n'
+                        else:
+                            status = 'o'
+                else:
+                    status = f'[st!=0,zdf==0,syx==xyx]{data}'
+            else:
+                if zdf > 0:
+                    status = '强势 大 阳 线'
+                elif zdf < 0:
+                    status = '强势 大 阴 线'
+                else:
+                    status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
+        return status
     except Exception as error:
         print(error)
+
+
+def prognosis(data):
+    if data in ['kno', 'olg', 'lgl', 'glk', 'lkl', 'lln', 'non', 'onl', 'ggo', 'gok', 'okl', 'kll', 'lll', 'nnn', 'nnl', 'nll', 'cgg', 'ggl', 'gll', 'lnl', 'lnk', 'kln', 'nlo', 'oln', 'ngn', 'gnl', 'llo', 'lol', 'oll', 'llk', 'lkn', 'knl', 'noo', 'ool', 'old', 'nld', 'ldl', 'ldn', 'dnk', 'nkd', 'kdd', 'ddk', 'nln', 'lnc', 'ncj', 'jjn', 'nno', 'ojn', 'ndn', 'dnj', 'njl', 'jlj', 'joo', 'nkl', 'nok', 'lnn', 'nlk', 'lld', 'knn', 'nkn', 'loj', 'jln', 'dnn', 'lok', 'kdn', 'dnd', 'ndd', 'ddd', 'ddc', 'dcb', 'cbd', 'ddg', 'dgd', 'dgl', 'gld', 'dld', 'ddn', 'lgn', 'lnj', 'jjo', 'nko', 'kol', 'jnn', 'nnj', 'njk', 'jkj', 'nlg', 'njn', 'jlo', 'lko', 'koj', 'ojj', 'jjl', 'llj', 'ljl', 'ldo', 'doj', 'ojd', 'ang', 'ngk', 'lon', 'knj', 'kdl', 'nnc', 'lkg', 'onn', 'njj', 'cnn', 'gdn', 'dnl', 'ljn', 'jnl', 'nnk', 'nkj', 'kjl', 'ljg', 'ljj', 'jld', 'ldd', 'ddb', 'dbd', 'bdd', 'dlg', 'lkd', 'lgk', 'gkc', 'log', 'gln', 'nlc', 'lcj', 'ncn', 'jno', 'odn', 'jgn', 'jll', 'con', 'jjg', 'jgj', 'gjl', 'ldj', 'jdn', 'jlc', 'cjd', 'jdd', 'ddl', 'dlj', 'kon', 'gkk', 'kkl', 'lnd', 'dkn', 'lno', 'oen', 'enl', 'nol', 'dln', 'knk', 'nkk', 'nnd', 'ndk', 'dkl', 'kng', 'gon', 'don', 'gdk', 'ong', 'nlj', 'klo', 'ojl', 'cnl', 'ndl', 'dbb', 'bbd', 'bdb', 'bbl', 'bld', 'ann', 'olk', 'ono', 'dgn', 'gnd', 'ndc', 'dcc', 'ccc', 'ccd', 'dfn', 'fnk', 'gnn', 'ldc']:
+        return '涨'
+    else:
+        return ''
+
+
+def k_data(font_2:list, font_1:list, data:list):
+    if not font_2 and not font_1:
+        font_2_status = ''
+        font_1_status = ''
+    elif font_1 and not font_2:
+        font_2_status = ''
+        font_1_status = analysis_data(font_1)
+    elif font_2:
+        font_2_status = analysis_data(font_2)
+        font_1_status = analysis_data(font_1)
+    else:
+        font_2_status = ''
+        font_1_status = ''
+
+    today_status = analysis_data(data)
+
+    prognosis_result = prognosis(str(font_2_status)+str(font_1_status)+str(today_status))
+
+    if float(data[8]) > 0:
+        msg = '涨'
+    else:
+        msg = '跌'
+    print(f'{data[0]}--今天：{msg}---明天：{prognosis_result}')
+
 
 if __name__ == '__main__':
     # stocks = [

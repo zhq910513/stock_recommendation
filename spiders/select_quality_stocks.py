@@ -4,7 +4,7 @@
 import json
 import pprint
 from multiprocessing.pool import ThreadPool
-
+from stock_format_data import req_history_data
 import requests
 from pylab import *
 
@@ -256,13 +256,18 @@ class Stock:
                             'name': stock_data['name'],
                             'history_data': self.get_30_days_data(_type_index, stock_data['history_data'], format_data)
                         })
+
+                        # 预测明天涨跌
+                        prognosis = req_history_data(stock_data["code"])
+
                         save_data.update({
                             'code': stock_data["code"],
                             'name': best_stock_name,
                             'trade': stock_data["trade"],
                             'up_days': stock_data["up_days"],
                             'type': [index_type],
-                            'match': round(float(best_result), 2)
+                            'match': round(float(best_result), 2),
+                            'prognosis': prognosis
                         })
                         save_data.update(last_detail)
                         log(f'本期最接近标准线的是：{stock_data["code"]} {best_stock_name}\n最后收盘信息：{last_detail}')

@@ -1,51 +1,234 @@
-import numpy as np
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+"""
+@author: the king
+@project: stock_recommendation
+@file: stock_format_data.py
+@time: 2022/6/11 16:30
+"""
+import json,copy
+import pprint
+import re
+import time
+
+import requests
+from numpy import *
+
+pp = pprint.PrettyPrinter(indent=4)
+
+status_list = []
+
+"""
+十字线
+大十字线
+上影十字线
+下影十字线
+
+T字线
+倒T字线
+
+锤头线
+倒锤头线
+
+一字线
+
+大阳线
+大阳下影线（阳锤头线）
+大阳上影线
+
+小阳线
+小阳上影线
+小阳下影线
+
+大阴线
+大阴下影线
+大阴上影线
+
+小阴线
+小阴上影线
+小阴下影线
+"""
 
 
-def cal_frechet_distance(curve_a: np.ndarray, curve_b: np.ndarray):
-    # 距离公式，两个坐标作差，平方，累加后开根号
-    def euc_dist(pt1, pt2):
-        return np.sqrt(np.square(pt2[0] - pt1[0]) + np.square(pt2[1] - pt1[1]))
+def req_history_data(stock_code):
+    url = f'http://78.push2his.eastmoney.com/api/qt/stock/kline/get' \
+          f'?cb=jQuery' \
+          f'&secid=0.{stock_code}' \
+          f'&ut=fa5fd1943c7b386f172d6893dbfba10b' \
+          f'&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6' \
+          f'&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61' \
+          f'&klt=101' \
+          f'&fqt=0' \
+          f'&end=20500101' \
+          f'&lmt=120' \
+          f'&_={int(time.time() * 1000)}'
 
-    # 用递归方式计算，遍历整个ca矩阵
-    def _c(ca, i, j, P, Q):  # 从ca左上角开始计算，这里用堆的方法把计算序列从右下角压入到左上角，实际计算时是从左上角开始
-        if ca[i, j] > -1:
-            return ca[i, j]
-        elif i == 0 and j == 0:  # 走到最左上角，只会计算一次
-            ca[i, j] = euc_dist(P[0], Q[0])
-        elif i > 0 and j == 0:  # 沿着Q的边边走
-            ca[i, j] = max(_c(ca, i - 1, 0, P, Q), euc_dist(P[i], Q[0]))
-        elif i == 0 and j > 0:  # 沿着P的边边走
-            ca[i, j] = max(_c(ca, 0, j - 1, P, Q), euc_dist(P[0], Q[j]))
-        elif i > 0 and j > 0:  # 核心代码：在ca矩阵中间走，寻找对齐路径
-            ca[i, j] = max(min(_c(ca, i - 1, j, P, Q),  # 正上方
-                               _c(ca, i - 1, j - 1, P, Q),  # 斜左上角
-                               _c(ca, i, j - 1, P, Q)),  # 正左方
-                           euc_dist(P[i], Q[j]))
-        else:  # 非法的无效数据，算法中不考虑，此时 i<0,j<0
-            ca[i, j] = float("inf")
-        return ca[i, j]
+    headers = {
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Connection': 'keep-alive',
+        'Cookie': 'qgqp_b_id=e829d607b6454c6dde64109c61f936e2; st_si=21280292358923; HAList=a-sz-000756-%u65B0%u534E%u5236%u836F; em_hq_fls=js; st_pvi=94651109933561; st_sp=2022-06-11%2016%3A19%3A10; st_inirUrl=https%3A%2F%2Fwww.baidu.com%2Flink; st_sn=17; st_psi=20220611165158402-113200301201-7930304906; st_asi=delete',
+        'Host': '46.push2his.eastmoney.com',
+        'Referer': 'http://quote.eastmoney.com/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'
+    }
+    resp = requests.get(url=url, headers=headers)
+    resp_data = json.loads(re.findall('\((.*?)\)', resp.text, re.S)[0]).get('data')
+    his_list = resp_data.get('klines')
 
-    # 这个是给我们调用的方法
-    def frechet_distance(P, Q):
-        ca = np.ones((len(P), len(Q)))
-        ca = np.multiply(ca, -1)
-        dis = _c(ca, len(P) - 1, len(Q) - 1, P, Q)  # ca为全-1的矩阵，shape = ( len(a), len(b) )
-        return dis
+    max_len = len(his_list)
+    for num, info in enumerate(his_list):
+        if 1 < num < (max_len-1):
+            font_2 = his_list[num - 2].split(',')
+            font_1 = his_list[num - 1].split(',')
+            data = info.split(',')
+            next_1 = his_list[num + 1].split(',')
+            status = k_data(font_2, font_1, data, next_1)
+            if status and status not in status_list:
+                status_list.append(status)
 
-    # 这里构造计算序列
-    curve_line_a = list(zip(range(len(curve_a)), curve_a))
-    curve_line_b = list(zip(range(len(curve_b)), curve_b))
-    return frechet_distance(curve_line_a, curve_line_b)
 
+def analysis_data(data:list):
+    kp = float(data[1])
+    sp = float(data[2])
+    zg = float(data[3])
+    zd = float(data[4])
+    zdf = float(data[8])
+    format_status = {
+        'a':'倒T字',
+        'b': 'T字',
+        'c': '一字',
+        'd': '大阳 短下影线',
+        'e': '大阳 锤头线',
+        'f': '大阴 短下影线',
+        'g': '大阴 锤头线',
+        'h': '大阳 短上影线',
+        'i': '大阴 短上影线',
+        'j': '双头大阳线',
+        'k': '大阳 双头 上影线',
+        'l': '大阳 双头 下影线',
+        'm': '双头大阴线',
+        'n':'大阴 双头 上影线',
+        '0':'大阴 双头 下影线'
+    }
+
+    status = None
+    try:
+        st = abs(sp - kp)
+        syx = abs(zg - sp)
+        xyx = abs(zd - sp)
+
+
+        if st == 0:
+            if syx > 0 and xyx == 0:
+                status = 'a'
+            elif syx == 0 and xyx > 0:
+                status = 'b'
+            else:
+                status = 'c'
+        else:
+            if syx != 0:
+                syx_rate = round(syx / st, 2)
+            else:
+                syx_rate = 0
+            if xyx != 0:
+                xyx_rate = round(xyx / st, 2)
+            else:
+                xyx_rate = 0
+            if syx == 0 and xyx != 0:
+                if zdf > 0:
+                    if xyx_rate > 0.3:
+                        status = 'd'
+                    else:
+                        status = 'e'
+                elif zdf < 0:
+                    if xyx_rate > 0.3:
+                        status = 'f'
+                    else:
+                        status = 'g'
+                else:
+                    status = None
+                    # status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
+            elif syx != 0 and xyx == 0:
+                if zdf > 0:
+                    if xyx_rate > 0.3:
+                        status = 'h'
+                    else:
+                        status = 'e'
+                elif zdf < 0:
+                    if xyx_rate > 0.3:
+                        status = 'i'
+                    else:
+                        status = 'g'
+                else:
+                    status = None
+                    # status = f'[st!=0,syx!=0,xyx==0,zdf==0]{data}'
+            elif syx != 0 and xyx != 0:
+                if zdf > 0:
+                    if syx_rate <= 0.3 and xyx <= 0.3:
+                        status = 'j'
+                    else:
+                        if syx > xyx:
+                            status = 'k'
+                        else:
+                            status = 'l'
+                elif zdf < 0:
+                    if syx_rate <= 0.3 and xyx <= 0.3:
+                        status = 'm'
+                    else:
+                        if syx > xyx:
+                            status = 'n'
+                        else:
+                            status = 'o'
+                else:
+                    status = None
+                    # status = f'[st!=0,zdf==0,syx==xyx]{data}'
+            else:
+                if zdf > 0:
+                    status = '强势 大 阳 线'
+                elif zdf < 0:
+                    status = '强势 大 阴 线'
+                else:
+                    status = None
+                    # status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
+    except Exception as error:
+        print(error)
+    return status
+
+
+def k_data(font_2:list, font_1:list, data:list, next_1:list):
+    font_2_status = analysis_data(font_2)
+    font_1_status = analysis_data(font_1)
+    today_status = analysis_data(data)
+
+    if float(next_1[8]) > 0:
+        if font_2 and font_1 and today_status:
+            result = str(font_2_status)+str(font_1_status)+str(today_status)
+            if 'None' in result:
+                return None
+            else:
+                return result
+        else:
+            return None
+    else:
+        return None
 
 if __name__ == '__main__':
-    a_array = np.array([13.78, 13.66, 13.53, 13.52, 13.45, 13.43, 13.33, 13.22, 13.23, 13.15, 12.97, 12.88, 12.0,
-                           11.9,
-                           11.83, 11.66, 11.76, 11.95, 11.93, 11.94, 12.25, 12.18, 12.29, 12.58, 12.58, 12.61, 12.73,
-                           12.91,
-                           13.09, 13.57])
-    b_array = np.array([1.72, 1.74, 1.74, 1.75, 1.76, 1.78, 1.76, 1.8, 1.8, 1.79, 1.83, 1.9, 1.88, 1.89, 1.9, 1.86, 1.88, 1.93, 1.9, 1.9, 1.91, 1.88, 1.9, 1.9, 1.91, 1.92, 1.91, 2.1, 2.31, 2.54])
-    result_ab = cal_frechet_distance(a_array, b_array)
-    print(result_ab)
+    stocks = [
+        '002988',
+        '000025',
+        '002339',
+        '002380',
+        '002272',
+        '002986',
+        '002945',
+        '000722',
+        '000756',
+        '002101'
+    ]
+    for stock_code in stocks:
+        req_history_data(stock_code)
 
-
+    print(status_list)
