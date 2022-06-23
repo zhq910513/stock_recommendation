@@ -17,7 +17,6 @@ from numpy import *
 
 pp = pprint.PrettyPrinter(indent=4)
 
-format_list = []
 
 """
 十字线
@@ -51,177 +50,184 @@ T字线
 """
 
 
-def req_history_data(stock_code):
-    url = f'http://78.push2his.eastmoney.com/api/qt/stock/kline/get' \
-          f'?cb=jQuery' \
-          f'&secid=0.{stock_code}' \
-          f'&ut=fa5fd1943c7b386f172d6893dbfba10b' \
-          f'&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6' \
-          f'&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61' \
-          f'&klt=101' \
-          f'&fqt=0' \
-          f'&end=20500101' \
-          f'&lmt=120' \
-          f'&_={int(time.time() * 1000)}'
+class Format(object):
+    def __int__(self):
+        self.success = 0
+        self.failure = 0
 
-    headers = {
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Connection': 'keep-alive',
-        'Cookie': 'qgqp_b_id=e829d607b6454c6dde64109c61f936e2; st_si=21280292358923; HAList=a-sz-000756-%u65B0%u534E%u5236%u836F; em_hq_fls=js; st_pvi=94651109933561; st_sp=2022-06-11%2016%3A19%3A10; st_inirUrl=https%3A%2F%2Fwww.baidu.com%2Flink; st_sn=17; st_psi=20220611165158402-113200301201-7930304906; st_asi=delete',
-        'Host': '46.push2his.eastmoney.com',
-        'Referer': 'http://quote.eastmoney.com/',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'
-    }
-    resp = requests.get(url=url, headers=headers)
-    resp_data = json.loads(re.findall('\((.*?)\)', resp.text, re.S)[0]).get('data')
-    his_list = resp_data.get('klines')[-30:]
+    def req_history_data(self, stock_code):
+        url = f'http://78.push2his.eastmoney.com/api/qt/stock/kline/get' \
+              f'?cb=jQuery' \
+              f'&secid=0.{stock_code}' \
+              f'&ut=fa5fd1943c7b386f172d6893dbfba10b' \
+              f'&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6' \
+              f'&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61' \
+              f'&klt=101' \
+              f'&fqt=0' \
+              f'&end=20500101' \
+              f'&lmt=120' \
+              f'&_={int(time.time() * 1000)}'
 
-    max_len = len(his_list)
-    for num, info in enumerate(his_list):
-        if 1 < num < (max_len-1):
-            font_2 = his_list[num - 2].split(',')
-            font_1 = his_list[num - 1].split(',')
-            data = info.split(',')
-            k_data(font_2, font_1, data)
+        headers = {
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Connection': 'keep-alive',
+            'Cookie': 'qgqp_b_id=e829d607b6454c6dde64109c61f936e2; st_si=21280292358923; HAList=a-sz-000756-%u65B0%u534E%u5236%u836F; em_hq_fls=js; st_pvi=94651109933561; st_sp=2022-06-11%2016%3A19%3A10; st_inirUrl=https%3A%2F%2Fwww.baidu.com%2Flink; st_sn=17; st_psi=20220611165158402-113200301201-7930304906; st_asi=delete',
+            'Host': '46.push2his.eastmoney.com',
+            'Referer': 'http://quote.eastmoney.com/',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'
+        }
+        resp = requests.get(url=url, headers=headers)
+        resp_data = json.loads(re.findall('\((.*?)\)', resp.text, re.S)[0]).get('data')
+        his_list = resp_data.get('klines')[-30:]
 
-    # k_data(his_list[0].split(','), his_list[1].split(','), his_list[2].split(','))
+        max_len = len(his_list)
+        for num, data in enumerate(his_list):
+            if 1 < num < (max_len-1):
+                font_2 = his_list[num - 2].split(',')
+                font_1 = his_list[num - 1].split(',')
+                data = data.split(',')
+                self.k_data(font_2, font_1, data)
+        print(self.success)
+
+        # k_data(his_list[0].split(','), his_list[1].split(','), his_list[2].split(','))
+
+    @staticmethod
+    def analysis_data(data:list):
+        kp = float(data[1])
+        sp = float(data[2])
+        zg = float(data[3])
+        zd = float(data[4])
+        zdf = float(data[8])
+        format_status = {
+            'a':'倒T字',
+            'b': 'T字',
+            'c': '一字',
+            'd': '大阳 短下影线',
+            'e': '大阳 锤头线',
+            'f': '大阴 短下影线',
+            'g': '大阴 锤头线',
+            'h': '大阳 短上影线',
+            'i': '大阴 短上影线',
+            'j': '双头大阳线',
+            'k': '大阳 双头 上影线',
+            'l': '大阳 双头 下影线',
+            'm': '双头大阴线',
+            'n':'大阴 双头 上影线',
+            '0':'大阴 双头 下影线'
+        }
+
+        try:
+            st = abs(sp - kp)
+            syx = abs(zg - sp)
+            xyx = abs(zd - sp)
 
 
-def analysis_data(data:list):
-    kp = float(data[1])
-    sp = float(data[2])
-    zg = float(data[3])
-    zd = float(data[4])
-    zdf = float(data[8])
-    format_status = {
-        'a':'倒T字',
-        'b': 'T字',
-        'c': '一字',
-        'd': '大阳 短下影线',
-        'e': '大阳 锤头线',
-        'f': '大阴 短下影线',
-        'g': '大阴 锤头线',
-        'h': '大阳 短上影线',
-        'i': '大阴 短上影线',
-        'j': '双头大阳线',
-        'k': '大阳 双头 上影线',
-        'l': '大阳 双头 下影线',
-        'm': '双头大阴线',
-        'n':'大阴 双头 上影线',
-        '0':'大阴 双头 下影线'
-    }
-
-    try:
-        st = abs(sp - kp)
-        syx = abs(zg - sp)
-        xyx = abs(zd - sp)
-
-
-        if st == 0:
-            if syx > 0 and xyx == 0:
-                status = 'a'
-            elif syx == 0 and xyx > 0:
-                status = 'b'
+            if st == 0:
+                if syx > 0 and xyx == 0:
+                    status = 'a'
+                elif syx == 0 and xyx > 0:
+                    status = 'b'
+                else:
+                    status = 'c'
             else:
-                status = 'c'
+                if syx != 0:
+                    syx_rate = round(syx / st, 2)
+                else:
+                    syx_rate = 0
+                if xyx != 0:
+                    xyx_rate = round(xyx / st, 2)
+                else:
+                    xyx_rate = 0
+                if syx == 0 and xyx != 0:
+                    if zdf > 0:
+                        if xyx_rate > 0.3:
+                            status = 'd'
+                        else:
+                            status = 'e'
+                    elif zdf < 0:
+                        if xyx_rate > 0.3:
+                            status = 'f'
+                        else:
+                            status = 'g'
+                    else:
+                        status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
+                elif syx != 0 and xyx == 0:
+                    if zdf > 0:
+                        if xyx_rate > 0.3:
+                            status = 'h'
+                        else:
+                            status = 'e'
+                    elif zdf < 0:
+                        if xyx_rate > 0.3:
+                            status = 'i'
+                        else:
+                            status = 'g'
+                    else:
+                        status = f'[st!=0,syx!=0,xyx==0,zdf==0]{data}'
+                elif syx != 0 and xyx != 0:
+                    if zdf > 0:
+                        if syx_rate <= 0.3 and xyx <= 0.3:
+                            status = 'j'
+                        else:
+                            if syx > xyx:
+                                status = 'k'
+                            else:
+                                status = 'l'
+                    elif zdf < 0:
+                        if syx_rate <= 0.3 and xyx <= 0.3:
+                            status = 'm'
+                        else:
+                            if syx > xyx:
+                                status = 'n'
+                            else:
+                                status = 'o'
+                    else:
+                        status = f'[st!=0,zdf==0,syx==xyx]{data}'
+                else:
+                    if zdf > 0:
+                        status = '强势 大 阳 线'
+                    elif zdf < 0:
+                        status = '强势 大 阴 线'
+                    else:
+                        status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
+            return status
+        except Exception as error:
+            print(error)
+
+    @staticmethod
+    def prognosis(data):
+        if data in ['cnn', 'nnn', 'nnk', 'kjn', 'nln', 'nlc', 'lcn', 'njn', 'kon', 'ncn', 'cnl', 'nlo', 'nkn', 'jnl', 'nll', 'llk', 'lkd', 'kdd', 'kno', 'dnn', 'nnl', 'lkl', 'ljn', 'nlk', 'kln', 'jnn', 'ono', 'ojg', 'gon', 'ndn', 'kgn', 'non', 'onl', 'lll', 'lld', 'dln', 'lnd', 'ndl', 'dll', 'nkg', 'kgc', 'gcd', 'lnn', 'kkl', 'kld', 'ldd', 'ddd', 'ddo', 'dod', 'lkk', 'kll', 'lnl', 'jng', 'loo', 'ool', 'old', 'ldj', 'jol', 'oln', 'ndo', 'cno', 'ogg', 'gln', 'noc', 'ocl', 'cll', 'ngn', 'llj', 'joj', 'ojl', 'lkj', 'lno', 'nol', 'lln', 'nlg', 'lgj', 'gjl', 'jlk', 'llo', 'oon', 'nld', 'lnc', 'ncj', 'jjn', 'nno', 'ojn', 'dnj', 'njl', 'jlj', 'oll', 'lnk', 'nkl', 'knk', 'jln', 'kdn', 'dnd', 'ndd', 'ddc', 'dcb', 'cbd', 'ddg', 'dgd', 'dgl', 'gld', 'ldl', 'dld', 'ddn', 'lgn', 'nnc', 'nck', 'dnl', 'cng', 'gkn', 'lon', 'knc', 'ncd', 'kng', 'nnj', 'jll', 'ljo', 'kcn', 'cnc', 'nnd', 'jkn', 'knd', 'njg', 'jno', 'nok', 'lng', 'ngg', 'djo', 'don', 'llg', 'gdn', 'jld', 'ond', 'ndj', 'djj', 'jjl', 'kco', 'coj', 'gnj', 'dbg', 'bgd', 'gdk', 'dkl', 'llb', 'bbk', 'bko', 'koo', 'ncc', 'ccd', 'cdd', 'ngj', 'oco', 'ndc', 'ckg', 'glg', 'lkn', 'knl', 'ldn', 'cnd', 'nng', 'ngl', 'glj', 'ccb', 'bnn', 'ndk', 'dkd', 'cln', 'jco', 'cod', 'odd', 'cbk', 'ljl', 'cdn', 'jok', 'okj', 'kjj', 'jjc', 'jcl', 'gng', 'ogn', 'gnl', 'nlj', 'oko', 'jnj', 'njc', 'gjc', 'dol', 'ccn', 'nog', 'gll', 'onn', 'noj', 'llc', 'lcd', 'noo', 'ook', 'okl', 'dgn', 'cnj', 'lol', 'olk', 'klj', 'ljc', 'dgg', 'glo', 'lob', 'obl', 'bld', 'njd', 'acg', 'lka', 'kal', 'alj', 'kkn', 'nco', 'ncl', 'lkg', 'ggk', 'cco', 'col', 'knj', 'jdn', 'lnj', 'dgk', 'gkd', 'kdc', 'dcc', 'ccc', 'ddl', 'gnn', 'ldc', 'okg', 'lgl', 'olo', 'lod', 'odl', 'dlk', 'klc', 'lcl', 'kjl', 'nkc', 'jcd', 'knn', 'lko', 'nod', 'dkn', 'djn', 'nkd', 'kdl', 'okn', 'njj', 'nkj', 'ljg', 'ljj', 'ddb', 'dbd', 'bdd', 'dog', 'ogl', 'glk', 'cgn', 'lca', 'cad', 'adl', 'jlo', 'obo', 'bol', 'cld', 'gjn', 'jaa', 'lcj', 'lgg', 'gkl', 'klk', 'ggd', 'gdd', 'ogk', 'jgg', 'ccg', 'ngk', 'cck', 'ckd', 'gnc', 'ncb', 'cbo', 'kkg', 'lcc', 'bln', 'dnk', 'kgo', 'gok', 'gco', 'oda', 'dad', 'add', 'dnc', 'lbn', 'bnl', 'dkk', 'kkj', 'dga', 'gal', 'alk', 'gkj', 'naa', 'adg', 'cak', 'akd', 'kcl', 'ldo', 'nkk', 'lok', 'ngo', 'jnk', 'onj', 'god', 'loj', 'ojk', 'gga', 'all', 'olg', 'ggg', 'ggl', 'gcn', 'dgj', 'ojd', 'ckk', 'kgl', 'ldk', 'gol', 'lkc', 'ggn', 'gnk', 'gnb', 'jcn', 'coo', 'ocn', 'bjc', 'cdb', 'cdl', 'odk', 'njo', 'olc', 'olj', 'jkg', 'cbn', 'bnd', 'ano', 'dcl', 'kog']:
+            return '涨'
         else:
-            if syx != 0:
-                syx_rate = round(syx / st, 2)
-            else:
-                syx_rate = 0
-            if xyx != 0:
-                xyx_rate = round(xyx / st, 2)
-            else:
-                xyx_rate = 0
-            if syx == 0 and xyx != 0:
-                if zdf > 0:
-                    if xyx_rate > 0.3:
-                        status = 'd'
-                    else:
-                        status = 'e'
-                elif zdf < 0:
-                    if xyx_rate > 0.3:
-                        status = 'f'
-                    else:
-                        status = 'g'
-                else:
-                    status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
-            elif syx != 0 and xyx == 0:
-                if zdf > 0:
-                    if xyx_rate > 0.3:
-                        status = 'h'
-                    else:
-                        status = 'e'
-                elif zdf < 0:
-                    if xyx_rate > 0.3:
-                        status = 'i'
-                    else:
-                        status = 'g'
-                else:
-                    status = f'[st!=0,syx!=0,xyx==0,zdf==0]{data}'
-            elif syx != 0 and xyx != 0:
-                if zdf > 0:
-                    if syx_rate <= 0.3 and xyx <= 0.3:
-                        status = 'j'
-                    else:
-                        if syx > xyx:
-                            status = 'k'
-                        else:
-                            status = 'l'
-                elif zdf < 0:
-                    if syx_rate <= 0.3 and xyx <= 0.3:
-                        status = 'm'
-                    else:
-                        if syx > xyx:
-                            status = 'n'
-                        else:
-                            status = 'o'
-                else:
-                    status = f'[st!=0,zdf==0,syx==xyx]{data}'
-            else:
-                if zdf > 0:
-                    status = '强势 大 阳 线'
-                elif zdf < 0:
-                    status = '强势 大 阴 线'
-                else:
-                    status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
-        return status
-    except Exception as error:
-        print(error)
+            return ''
 
 
-def prognosis(data):
-    if data in ['kno', 'olg', 'lgl', 'glk', 'lkl', 'lln', 'non', 'onl', 'ggo', 'gok', 'okl', 'kll', 'lll', 'nnn', 'nnl', 'nll', 'cgg', 'ggl', 'gll', 'lnl', 'lnk', 'kln', 'nlo', 'oln', 'ngn', 'gnl', 'llo', 'lol', 'oll', 'llk', 'lkn', 'knl', 'noo', 'ool', 'old', 'nld', 'ldl', 'ldn', 'dnk', 'nkd', 'kdd', 'ddk', 'nln', 'lnc', 'ncj', 'jjn', 'nno', 'ojn', 'ndn', 'dnj', 'njl', 'jlj', 'joo', 'nkl', 'nok', 'lnn', 'nlk', 'lld', 'knn', 'nkn', 'loj', 'jln', 'dnn', 'lok', 'kdn', 'dnd', 'ndd', 'ddd', 'ddc', 'dcb', 'cbd', 'ddg', 'dgd', 'dgl', 'gld', 'dld', 'ddn', 'lgn', 'lnj', 'jjo', 'nko', 'kol', 'jnn', 'nnj', 'njk', 'jkj', 'nlg', 'njn', 'jlo', 'lko', 'koj', 'ojj', 'jjl', 'llj', 'ljl', 'ldo', 'doj', 'ojd', 'ang', 'ngk', 'lon', 'knj', 'kdl', 'nnc', 'lkg', 'onn', 'njj', 'cnn', 'gdn', 'dnl', 'ljn', 'jnl', 'nnk', 'nkj', 'kjl', 'ljg', 'ljj', 'jld', 'ldd', 'ddb', 'dbd', 'bdd', 'dlg', 'lkd', 'lgk', 'gkc', 'log', 'gln', 'nlc', 'lcj', 'ncn', 'jno', 'odn', 'jgn', 'jll', 'con', 'jjg', 'jgj', 'gjl', 'ldj', 'jdn', 'jlc', 'cjd', 'jdd', 'ddl', 'dlj', 'kon', 'gkk', 'kkl', 'lnd', 'dkn', 'lno', 'oen', 'enl', 'nol', 'dln', 'knk', 'nkk', 'nnd', 'ndk', 'dkl', 'kng', 'gon', 'don', 'gdk', 'ong', 'nlj', 'klo', 'ojl', 'cnl', 'ndl', 'dbb', 'bbd', 'bdb', 'bbl', 'bld', 'ann', 'olk', 'ono', 'dgn', 'gnd', 'ndc', 'dcc', 'ccc', 'ccd', 'dfn', 'fnk', 'gnn', 'ldc']:
-        return '涨'
-    else:
-        return ''
+    def k_data(self, font_2:list, font_1:list, data:list):
+        if not font_2 and not font_1:
+            font_2_status = ''
+            font_1_status = ''
+        elif font_1 and not font_2:
+            font_2_status = ''
+            font_1_status = self.analysis_data(font_1)
+        elif font_2:
+            font_2_status = self.analysis_data(font_2)
+            font_1_status = self.analysis_data(font_1)
+        else:
+            font_2_status = ''
+            font_1_status = ''
 
+        today_status = self.analysis_data(data)
 
-def k_data(font_2:list, font_1:list, data:list):
-    if not font_2 and not font_1:
-        font_2_status = ''
-        font_1_status = ''
-    elif font_1 and not font_2:
-        font_2_status = ''
-        font_1_status = analysis_data(font_1)
-    elif font_2:
-        font_2_status = analysis_data(font_2)
-        font_1_status = analysis_data(font_1)
-    else:
-        font_2_status = ''
-        font_1_status = ''
+        prognosis_result = self.prognosis(str(font_2_status)+str(font_1_status)+str(today_status))
 
-    today_status = analysis_data(data)
+        if float(data[8]) > 0:
+            today_zd = '涨'
+        else:
+            today_zd = '跌'
 
-    prognosis_result = prognosis(str(font_2_status)+str(font_1_status)+str(today_status))
-
-    if float(data[8]) > 0:
-        msg = '涨'
-    else:
-        msg = '跌'
-    print(f'{data[0]}--今天：{msg}---明天：{prognosis_result}')
+        self.success += 1
 
 
 if __name__ == '__main__':
@@ -238,15 +244,6 @@ if __name__ == '__main__':
     #     '002101'
     # ]
     # for stock_code in stocks:
-    #     req_history_data(stock_code)
-    # # print(format_list)
-    #
-    # new_format_data = []
-    # for _index in range(30):
-    #     _index_data_list = []
-    #     for i in format_list:
-    #         _index_data_list.append(i[_index])
-    #     new_format_data.append(round(mean(_index_data_list), 2))
-    #
-    # print(new_format_data)
-    req_history_data('000025')
+
+    f = Format()
+    f.req_history_data('000868')

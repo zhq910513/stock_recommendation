@@ -15,6 +15,8 @@ import time
 import requests
 from numpy import *
 
+from spiders.longhubang import get_all_stocks
+
 pp = pprint.PrettyPrinter(indent=4)
 
 status_list = []
@@ -79,11 +81,11 @@ def req_history_data(stock_code):
     his_list = resp_data.get('klines')
 
     max_len = len(his_list)
-    for num, info in enumerate(his_list):
+    for num, data in enumerate(his_list):
         if 1 < num < (max_len-1):
             font_2 = his_list[num - 2].split(',')
             font_1 = his_list[num - 1].split(',')
-            data = info.split(',')
+            data = data.split(',')
             next_1 = his_list[num + 1].split(',')
             status = k_data(font_2, font_1, data, next_1)
             if status and status not in status_list:
@@ -95,7 +97,7 @@ def analysis_data(data:list):
     sp = float(data[2])
     zg = float(data[3])
     zd = float(data[4])
-    zdf = float(data[8])
+    zdf = float(sp-kp)
     format_status = {
         'a':'倒T字',
         'b': 'T字',
@@ -119,7 +121,6 @@ def analysis_data(data:list):
         st = abs(sp - kp)
         syx = abs(zg - sp)
         xyx = abs(zd - sp)
-
 
         if st == 0:
             if syx > 0 and xyx == 0:
@@ -149,8 +150,8 @@ def analysis_data(data:list):
                     else:
                         status = 'g'
                 else:
-                    status = None
-                    # status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
+                    # status = None
+                    status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
             elif syx != 0 and xyx == 0:
                 if zdf > 0:
                     if xyx_rate > 0.3:
@@ -163,8 +164,8 @@ def analysis_data(data:list):
                     else:
                         status = 'g'
                 else:
-                    status = None
-                    # status = f'[st!=0,syx!=0,xyx==0,zdf==0]{data}'
+                    # status = None
+                    status = f'[st!=0,syx!=0,xyx==0,zdf==0]{data}'
             elif syx != 0 and xyx != 0:
                 if zdf > 0:
                     if syx_rate <= 0.3 and xyx <= 0.3:
@@ -183,16 +184,16 @@ def analysis_data(data:list):
                         else:
                             status = 'o'
                 else:
-                    status = None
-                    # status = f'[st!=0,zdf==0,syx==xyx]{data}'
+                    # status = None
+                    status = f'[st!=0,zdf==0,syx==xyx]{data}'
             else:
                 if zdf > 0:
                     status = '强势 大 阳 线'
                 elif zdf < 0:
                     status = '强势 大 阴 线'
                 else:
-                    status = None
-                    # status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
+                    # status = None
+                    status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
     except Exception as error:
         print(error)
     return status
@@ -202,33 +203,19 @@ def k_data(font_2:list, font_1:list, data:list, next_1:list):
     font_2_status = analysis_data(font_2)
     font_1_status = analysis_data(font_1)
     today_status = analysis_data(data)
+    next_status = float(next_1[8])
 
-    if float(next_1[8]) > 0:
-        if font_2 and font_1 and today_status:
-            result = str(font_2_status)+str(font_1_status)+str(today_status)
-            if 'None' in result:
-                return None
-            else:
-                return result
+    if next_status > 0:
+        if font_2_status and font_1_status and today_status:
+            return font_2_status+font_1_status+today_status
         else:
             return None
     else:
         return None
 
 if __name__ == '__main__':
-    stocks = [
-        '002988',
-        '000025',
-        '002339',
-        '002380',
-        '002272',
-        '002986',
-        '002945',
-        '000722',
-        '000756',
-        '002101'
-    ]
-    for stock_code in stocks:
-        req_history_data(stock_code)
+    code_list = get_all_stocks('2022-06-23')
+    for code in code_list:
+        req_history_data(code)
 
     print(status_list)
