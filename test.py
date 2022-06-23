@@ -150,7 +150,6 @@ def analysis_data(data:list):
                     else:
                         status = 'g'
                 else:
-                    # status = None
                     status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
             elif syx != 0 and xyx == 0:
                 if zdf > 0:
@@ -164,7 +163,6 @@ def analysis_data(data:list):
                     else:
                         status = 'g'
                 else:
-                    # status = None
                     status = f'[st!=0,syx!=0,xyx==0,zdf==0]{data}'
             elif syx != 0 and xyx != 0:
                 if zdf > 0:
@@ -184,7 +182,6 @@ def analysis_data(data:list):
                         else:
                             status = 'o'
                 else:
-                    # status = None
                     status = f'[st!=0,zdf==0,syx==xyx]{data}'
             else:
                 if zdf > 0:
@@ -192,7 +189,6 @@ def analysis_data(data:list):
                 elif zdf < 0:
                     status = '强势 大 阴 线'
                 else:
-                    # status = None
                     status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
     except Exception as error:
         print(error)
@@ -213,9 +209,12 @@ def k_data(font_2:list, font_1:list, data:list, next_1:list):
     else:
         return None
 
-if __name__ == '__main__':
-    code_list = get_all_stocks('2022-06-23')
-    for code in code_list:
-        req_history_data(code)
 
+if __name__ == '__main__':
+    # code_list = get_all_stocks('2022-06-23')
+    code_list = ['000017']
+    for code in code_list:
+        print(code)
+        req_history_data(code)
+        break
     print(status_list)

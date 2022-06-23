@@ -7,7 +7,7 @@
 @file: stock_format_data.py
 @time: 2022/6/11 16:30
 """
-import json,copy
+import json
 import pprint
 import re
 import time
@@ -16,7 +16,6 @@ import requests
 from numpy import *
 
 pp = pprint.PrettyPrinter(indent=4)
-
 
 """
 十字线
@@ -49,12 +48,10 @@ T字线
 小阴下影线
 """
 
+k_format_list = ['cnn', 'nnn', 'nnk', 'kjn', 'nln', 'nlc', 'lcn', 'njn', 'kon', 'ncn', 'cnl', 'nlo', 'nkn', 'jnl', 'nll', 'llk', 'lkd', 'kdd', 'kno', 'dnn', 'nnl', 'lkl', 'ljn', 'nlk', 'kln', 'jnn', 'ono', 'ojg', 'gon', 'ndn', 'kgn', 'non', 'onl', 'lll', 'lld', 'dln', 'lnd', 'ndl', 'dll', 'nkg', 'kgc', 'gcd', 'lnn', 'kkl', 'kld', 'ldd', 'ddd', 'ddo', 'dod']
 
-class Format(object):
-    def __int__(self):
-        self.success = 0
-        self.failure = 0
 
+class Format:
     def req_history_data(self, stock_code):
         url = f'http://78.push2his.eastmoney.com/api/qt/stock/kline/get' \
               f'?cb=jQuery' \
@@ -82,26 +79,32 @@ class Format(object):
         resp_data = json.loads(re.findall('\((.*?)\)', resp.text, re.S)[0]).get('data')
         his_list = resp_data.get('klines')[-30:]
 
+        success = 0
+        failure = 0
         max_len = len(his_list)
         for num, data in enumerate(his_list):
-            if 1 < num < (max_len-1):
+            if 1 < num < (max_len - 1):
                 font_2 = his_list[num - 2].split(',')
                 font_1 = his_list[num - 1].split(',')
                 data = data.split(',')
-                self.k_data(font_2, font_1, data)
-        print(self.success)
+                status = self.k_data(font_2, font_1, data)
+                if status:
+                    success += 1
+                else:
+                    failure += 1
+        print(f'预测成功率：{round(success / (success + failure), 2) * 100}%')
 
         # k_data(his_list[0].split(','), his_list[1].split(','), his_list[2].split(','))
 
     @staticmethod
-    def analysis_data(data:list):
+    def analysis_data(data: list):
         kp = float(data[1])
         sp = float(data[2])
         zg = float(data[3])
         zd = float(data[4])
         zdf = float(data[8])
         format_status = {
-            'a':'倒T字',
+            'a': '倒T字',
             'b': 'T字',
             'c': '一字',
             'd': '大阳 短下影线',
@@ -114,15 +117,14 @@ class Format(object):
             'k': '大阳 双头 上影线',
             'l': '大阳 双头 下影线',
             'm': '双头大阴线',
-            'n':'大阴 双头 上影线',
-            '0':'大阴 双头 下影线'
+            'n': '大阴 双头 上影线',
+            '0': '大阴 双头 下影线'
         }
 
         try:
             st = abs(sp - kp)
             syx = abs(zg - sp)
             xyx = abs(zd - sp)
-
 
             if st == 0:
                 if syx > 0 and xyx == 0:
@@ -198,13 +200,12 @@ class Format(object):
 
     @staticmethod
     def prognosis(data):
-        if data in ['cnn', 'nnn', 'nnk', 'kjn', 'nln', 'nlc', 'lcn', 'njn', 'kon', 'ncn', 'cnl', 'nlo', 'nkn', 'jnl', 'nll', 'llk', 'lkd', 'kdd', 'kno', 'dnn', 'nnl', 'lkl', 'ljn', 'nlk', 'kln', 'jnn', 'ono', 'ojg', 'gon', 'ndn', 'kgn', 'non', 'onl', 'lll', 'lld', 'dln', 'lnd', 'ndl', 'dll', 'nkg', 'kgc', 'gcd', 'lnn', 'kkl', 'kld', 'ldd', 'ddd', 'ddo', 'dod', 'lkk', 'kll', 'lnl', 'jng', 'loo', 'ool', 'old', 'ldj', 'jol', 'oln', 'ndo', 'cno', 'ogg', 'gln', 'noc', 'ocl', 'cll', 'ngn', 'llj', 'joj', 'ojl', 'lkj', 'lno', 'nol', 'lln', 'nlg', 'lgj', 'gjl', 'jlk', 'llo', 'oon', 'nld', 'lnc', 'ncj', 'jjn', 'nno', 'ojn', 'dnj', 'njl', 'jlj', 'oll', 'lnk', 'nkl', 'knk', 'jln', 'kdn', 'dnd', 'ndd', 'ddc', 'dcb', 'cbd', 'ddg', 'dgd', 'dgl', 'gld', 'ldl', 'dld', 'ddn', 'lgn', 'nnc', 'nck', 'dnl', 'cng', 'gkn', 'lon', 'knc', 'ncd', 'kng', 'nnj', 'jll', 'ljo', 'kcn', 'cnc', 'nnd', 'jkn', 'knd', 'njg', 'jno', 'nok', 'lng', 'ngg', 'djo', 'don', 'llg', 'gdn', 'jld', 'ond', 'ndj', 'djj', 'jjl', 'kco', 'coj', 'gnj', 'dbg', 'bgd', 'gdk', 'dkl', 'llb', 'bbk', 'bko', 'koo', 'ncc', 'ccd', 'cdd', 'ngj', 'oco', 'ndc', 'ckg', 'glg', 'lkn', 'knl', 'ldn', 'cnd', 'nng', 'ngl', 'glj', 'ccb', 'bnn', 'ndk', 'dkd', 'cln', 'jco', 'cod', 'odd', 'cbk', 'ljl', 'cdn', 'jok', 'okj', 'kjj', 'jjc', 'jcl', 'gng', 'ogn', 'gnl', 'nlj', 'oko', 'jnj', 'njc', 'gjc', 'dol', 'ccn', 'nog', 'gll', 'onn', 'noj', 'llc', 'lcd', 'noo', 'ook', 'okl', 'dgn', 'cnj', 'lol', 'olk', 'klj', 'ljc', 'dgg', 'glo', 'lob', 'obl', 'bld', 'njd', 'acg', 'lka', 'kal', 'alj', 'kkn', 'nco', 'ncl', 'lkg', 'ggk', 'cco', 'col', 'knj', 'jdn', 'lnj', 'dgk', 'gkd', 'kdc', 'dcc', 'ccc', 'ddl', 'gnn', 'ldc', 'okg', 'lgl', 'olo', 'lod', 'odl', 'dlk', 'klc', 'lcl', 'kjl', 'nkc', 'jcd', 'knn', 'lko', 'nod', 'dkn', 'djn', 'nkd', 'kdl', 'okn', 'njj', 'nkj', 'ljg', 'ljj', 'ddb', 'dbd', 'bdd', 'dog', 'ogl', 'glk', 'cgn', 'lca', 'cad', 'adl', 'jlo', 'obo', 'bol', 'cld', 'gjn', 'jaa', 'lcj', 'lgg', 'gkl', 'klk', 'ggd', 'gdd', 'ogk', 'jgg', 'ccg', 'ngk', 'cck', 'ckd', 'gnc', 'ncb', 'cbo', 'kkg', 'lcc', 'bln', 'dnk', 'kgo', 'gok', 'gco', 'oda', 'dad', 'add', 'dnc', 'lbn', 'bnl', 'dkk', 'kkj', 'dga', 'gal', 'alk', 'gkj', 'naa', 'adg', 'cak', 'akd', 'kcl', 'ldo', 'nkk', 'lok', 'ngo', 'jnk', 'onj', 'god', 'loj', 'ojk', 'gga', 'all', 'olg', 'ggg', 'ggl', 'gcn', 'dgj', 'ojd', 'ckk', 'kgl', 'ldk', 'gol', 'lkc', 'ggn', 'gnk', 'gnb', 'jcn', 'coo', 'ocn', 'bjc', 'cdb', 'cdl', 'odk', 'njo', 'olc', 'olj', 'jkg', 'cbn', 'bnd', 'ano', 'dcl', 'kog']:
+        if data in k_format_list:
             return '涨'
         else:
             return ''
 
-
-    def k_data(self, font_2:list, font_1:list, data:list):
+    def k_data(self, font_2: list, font_1: list, data: list):
         if not font_2 and not font_1:
             font_2_status = ''
             font_1_status = ''
@@ -220,14 +221,17 @@ class Format(object):
 
         today_status = self.analysis_data(data)
 
-        prognosis_result = self.prognosis(str(font_2_status)+str(font_1_status)+str(today_status))
+        prognosis_result = self.prognosis(str(font_2_status) + str(font_1_status) + str(today_status))
 
         if float(data[8]) > 0:
             today_zd = '涨'
         else:
             today_zd = '跌'
 
-        self.success += 1
+        if today_zd == prognosis_result:
+            return True
+        else:
+            return False
 
 
 if __name__ == '__main__':
@@ -246,4 +250,4 @@ if __name__ == '__main__':
     # for stock_code in stocks:
 
     f = Format()
-    f.req_history_data('000868')
+    f.req_history_data('000017')
