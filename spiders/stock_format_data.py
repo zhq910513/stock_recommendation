@@ -50,14 +50,6 @@ T字线
 
 k_format_list = ['cnn', 'nnn', 'nnk', 'kjn', 'nln', 'nlc', 'lcn', 'njn', 'kon', 'ncn', 'cnl', 'nlo', 'nkn', 'jnl', 'nll', 'llk', 'lkd', 'kdd', 'kno', 'dnn', 'nnl', 'lkl', 'ljn', 'nlk', 'kln', 'jnn', 'ono', 'ojg', 'gon', 'ndn', 'kgn', 'non', 'onl', 'lll', 'lld', 'dln', 'lnd', 'ndl', 'dll', 'nkg', 'kgc', 'gcd', 'lnn', 'kkl', 'kld', 'ldd', 'ddd', 'ddo', 'dod']
 
-<<<<<<< HEAD
-
-class Format(object):
-    def __int__(self):
-        self.success = 0
-        self.failure = 0
-=======
->>>>>>> e1a10b8660a76cb579b1c3c91d5b62614500c720
 
 class Format:
     def req_history_data(self, stock_code):
