@@ -16,13 +16,12 @@ def handle_price(buy_price, buy_times=5):
 
     cost_rate = 0.009569
     cost = round((sale_price-buy_price) * buy_count * cost_rate, 2)
-    print(cost)
 
     incomes = round(((sale_price-buy_price) * buy_count) - cost, 2)
     print(f'可购买 {buy_times} 手\n本次花费 {used_money} 元\n卖出价格 {sale_price} 元\n预计收益 {incomes} 元')
 
 
 if __name__ == '__main__':
-    buy = 18.93
+    buy = 14.50
     handle_price(buy)
 

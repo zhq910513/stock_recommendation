@@ -1,5 +1,5 @@
 # 连板天数
-r_updays_filter = 2
+r_updays_filter = '2天2板'
 
 # 行业
 r_trades_filter = [

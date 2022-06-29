@@ -53,52 +53,6 @@ def get_all_stocks(date=None):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36',
         'X-Requested-With': 'XMLHttpRequest'
     }
-    # try:
-    #     req = requests.get(url=url, headers=headers, verify=False)
-    #     if req.status_code == 200:
-    #         if req.json().get('status_code') == '0' and req.json().get('status_msg') == 'ok':
-    #             result = req.json().get('data')
-    #             # 总榜
-    #             all_data = result.get('all').get('list')
-    #             print(f'---------- {date} 龙虎榜 {len(all_data)} 只 ----------')
-    #             for data in all_data:
-    #                 try:
-    #                     if str(data['stockCode'])[:3] not in r_market_filter: continue
-    #                     hash_key = hashlib.md5((date + data['stockCode']).encode("utf8")).hexdigest()
-    #                     data.update({'hash_key': hash_key, 'date': date.replace('-', ''), 'code': data['stockCode']})
-    #                     MongoPipeline(longhu_all).update_item({'hash_key': None}, data)
-    #                 except:
-    #                     pass
-    #
-    #             # 机构榜
-    #             capital_data = result.get('capital').get('list')
-    #             print(f'---------- {date} 机构榜 {len(capital_data)} 只 ----------')
-    #             for data in capital_data:
-    #                 try:
-    #                     if str(data['stockCode'])[:3] not in r_market_filter: continue
-    #                     hash_key = hashlib.md5((date + data['stockCode']).encode("utf8")).hexdigest()
-    #                     data.update({'hash_key': hash_key, 'date': date.replace('-', ''), 'code': data['stockCode']})
-    #                     MongoPipeline(longhu_capital).update_item({'hash_key': None}, data)
-    #                 except:
-    #                     pass
-    #
-    #             # 游资榜
-    #             org_data = result.get('org').get('list')
-    #             print(f'---------- {date} 游资榜 {len(org_data)} 只 ----------')
-    #             for data in org_data:
-    #                 try:
-    #                     if str(data['stockCode'])[:3] not in r_market_filter: continue
-    #                     hash_key = hashlib.md5((date + data.get('stockCode')).encode("utf8")).hexdigest()
-    #                     data.update({'hash_key': hash_key, 'date': date.replace('-', ''), 'code': data['stockCode']})
-    #                     MongoPipeline(longhu_org).update_item({'hash_key': None}, data)
-    #                 except:
-    #                     pass
-    #         else:
-    #             print(req.json())
-    # except Exception as error:
-    #     log_err(error)
-
-    code_list = []
     try:
         req = requests.get(url=url, headers=headers, verify=False)
         if req.status_code == 200:
@@ -106,34 +60,48 @@ def get_all_stocks(date=None):
                 result = req.json().get('data')
                 # 总榜
                 all_data = result.get('all').get('list')
+                print(f'---------- {date} 龙虎榜 {len(all_data)} 只 ----------')
                 for data in all_data:
-                    code = data.get('stockCode')
-                    if str(code)[:3] not in r_market_filter: continue
-                    if code not in code_list:
-                        code_list.append(code)
-                # 总榜
-                all_data = result.get('capital').get('list')
-                for data in all_data:
-                    code = data.get('stockCode')
-                    if str(code)[:3] not in r_market_filter: continue
-                    if code not in code_list:
-                        code_list.append(code)
+                    try:
+                        if str(data['stockCode'])[:3] not in r_market_filter: continue
+                        hash_key = hashlib.md5((date + data['stockCode']).encode("utf8")).hexdigest()
+                        data.update({'hash_key': hash_key, 'date': date.replace('-', ''), 'code': data['stockCode']})
+                        MongoPipeline(longhu_all).update_item({'hash_key': None}, data)
+                    except:
+                        pass
 
-                # 总榜
-                all_data = result.get('org').get('list')
-                for data in all_data:
-                    code = data.get('stockCode')
-                    if str(code)[:3] not in r_market_filter: continue
-                    if code not in code_list:
-                        code_list.append(code)
+                # 机构榜
+                capital_data = result.get('capital').get('list')
+                print(f'---------- {date} 机构榜 {len(capital_data)} 只 ----------')
+                for data in capital_data:
+                    try:
+                        if str(data['stockCode'])[:3] not in r_market_filter: continue
+                        hash_key = hashlib.md5((date + data['stockCode']).encode("utf8")).hexdigest()
+                        data.update({'hash_key': hash_key, 'date': date.replace('-', ''), 'code': data['stockCode']})
+                        MongoPipeline(longhu_capital).update_item({'hash_key': None}, data)
+                    except:
+                        pass
+
+                # 游资榜
+                org_data = result.get('org').get('list')
+                print(f'---------- {date} 游资榜 {len(org_data)} 只 ----------')
+                for data in org_data:
+                    try:
+                        if str(data['stockCode'])[:3] not in r_market_filter: continue
+                        hash_key = hashlib.md5((date + data.get('stockCode')).encode("utf8")).hexdigest()
+                        data.update({'hash_key': hash_key, 'date': date.replace('-', ''), 'code': data['stockCode']})
+                        MongoPipeline(longhu_org).update_item({'hash_key': None}, data)
+                    except:
+                        pass
+            else:
+                print(req.json())
     except Exception as error:
-        print(error)
-    return code_list
+        log_err(error)
 
 if __name__ == '__main__':
-    # date_now = time.strftime("%Y-%m-%d", time.localtime(time.time()))
-    for date_now in [
-        '2022-06-01', '2022-06-02', '2022-06-06', '2022-06-07', '2022-06-08', '2022-06-09', '2022-06-10', '2022-06-13',
-        '2022-06-14','2022-06-15', '2022-06-16', '2022-06-17', '2022-06-20', '2022-06-21'
-    ]:
-        get_all_stocks(date_now)
+    date_now = time.strftime("%Y-%m-%d", time.localtime(time.time()))
+    # for date_now in [
+    #     '2022-06-01', '2022-06-02', '2022-06-06', '2022-06-07', '2022-06-08', '2022-06-09', '2022-06-10', '2022-06-13',
+    #     '2022-06-14','2022-06-15', '2022-06-16', '2022-06-17', '2022-06-20', '2022-06-21'
+    # ]:
+    get_all_stocks()

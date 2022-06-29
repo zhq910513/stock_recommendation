@@ -9,6 +9,7 @@ from pylab import *
 
 from common.log_out import log, log_err
 from dbs.pipelines import MongoPipeline
+from rules import r_updays_filter
 
 mpl.rcParams['font.sans-serif'] = ['SimHei']  # 指定默认字体（解决中文无法显示的问题）
 mpl.rcParams['axes.unicode_minus'] = False  # 解决保存图像时负号“-”显示方块的问题
@@ -17,6 +18,8 @@ pp = pprint.PrettyPrinter(indent=4)
 names = [
     '日期', '开盘', '收盘', '最高', '最低', '成交量', '成交额', '振幅', '涨跌幅', '涨跌额', '换手率'
 ]
+
+format_data = [14.09, 13.78, 13.64, 13.43, 13.21, 13.17, 13.18, 13.08, 12.64, 12.32, 11.56, 10.8, 10.55, 10.63, 10.86, 11.16, 11.12, 11.28, 11.36, 11.55, 11.42, 12.12, 12.7, 12.34, 12.27, 12.14, 12.21, 12.38, 12.52, 12.78]
 
 # 是否显示画图
 show = True
@@ -32,61 +35,30 @@ db = 'stock'
 # mongo collections
 geguzhangfu = 'geguzhangfu'  # 个股涨幅
 lianbang = 'lianbang' # 连榜
+zhangting = 'zhangting' # 涨停
 longhu_all = 'longhu_all'  # 总榜
 longhu_capital = 'longhu_capital'  # 机构榜
 longhu_org = 'longhu_org'  # 游资榜
 
 
 class Stock:
-    def __init__(self, collection):
-        self.stock_info_list = self.get_longhu_stocks(collection)
+    def __init__(self, collection, query):
+        self.collection, self.query = collection, query
+        self.stock_info_list = self.get_stocks()
         self.stock_history = self.thread_search()
 
-    @staticmethod
-    def get_longhu_stocks(collection):
+    def get_stocks(self):
         hour_now = int(time.strftime("%H", time.localtime(time.time())))
         if hour_now >= 18:
             date_now = time.strftime("%Y%m%d", time.localtime(time.time()))
         else:
             date_now = time.strftime("%Y%m%d", time.localtime(time.time() - 86400))
         stock_info_list = []
-        for data in MongoPipeline(collection).find({'date': date_now}):
+        true_query = {'date': date_now}
+        true_query.update(self.query)
+        for data in MongoPipeline(self.collection).find(true_query):
             stock_info_list.append(data)
         return stock_info_list
-
-    # 标准数据类型   high   low   aver   rate
-    @staticmethod
-    def get_format_data(index_type):
-        if index_type == 'high':
-            _type_index = 3
-            format_data = [13.78, 13.66, 13.53, 13.52, 13.45, 13.43, 13.33, 13.22, 13.23, 13.15, 12.97, 12.88, 12.0,
-                           11.9,
-                           11.83, 11.66, 11.76, 11.95, 11.93, 11.94, 12.25, 12.18, 12.29, 12.58, 12.58, 12.61, 12.73,
-                           12.91,
-                           13.09, 13.57]
-        elif index_type == 'low':
-            _type_index = 4
-            format_data = [12.76, 12.9, 12.85, 12.86, 12.85, 12.92, 12.76, 12.71, 12.62, 12.44, 12.46, 12.36, 12.16,
-                           12.12,
-                           11.24, 11.29, 11.19, 11.26, 11.42, 11.41, 11.55, 11.72, 11.63, 11.68, 11.9, 12.06, 12.09,
-                           12.36,
-                           12.4, 12.72]
-        elif index_type == 'aver':
-            _type_index = 3.4
-            format_data = [13.35, 13.4, 13.25, 13.12, 13.02, 13.0, 12.92, 12.78, 12.86, 12.76, 12.62, 12.59, 11.66,
-                           11.62,
-                           11.59, 11.69, 11.86, 11.98, 11.86, 11.82, 12.1, 12.0, 12.06, 12.4, 12.46, 12.62, 12.49, 12.8,
-                           12.94, 13.2]
-        elif index_type == 'rate':
-            _type_index = 8
-            format_data = [-0.17, -1.7, -0.72, -0.36, -1.1, 0.65, -0.19, -0.18, -0.24, -0.63, -1.28, 1.52, -1.06, -0.28,
-                           1.38, -0.33, 1.55, 0.56, 0.76, -1.02, 3.15, 0.56, 1.64, -0.55, 0.88, 2.4, 0.38, 1.52, 4.04,
-                           8.39]
-        else:
-            _type_index = 0
-            format_data = []
-            print('暂时不支持该类型')
-        return _type_index, format_data
 
     # 多线程处理数据
     def thread_search(self, remove_bad=True, Async=True):
@@ -152,8 +124,8 @@ class Stock:
             last_detail = dict(zip(names, last_price))
             data = {
                 'code': stock_info["code"],
-                'trade': None,
-                'up_days': None,
+                'limit_up_type': stock_info.get('limit_up_type'),
+                'high_days': stock_info.get('high_days'),
                 'name': stock_name,
                 'history_data': his_data,
                 'last_detail': last_detail
@@ -173,14 +145,11 @@ class Stock:
         return new_list
 
     # 获取最近30天交易数据
-    def get_30_days_data(self, _index, history_data, format_data=None):
+    def get_30_days_data(self, history_data, format_data=None):
         new_his_data = []
         for data in history_data[-30:]:
-            if isinstance(_index, float):
-                new_his_data.append(round((float(data[3]) + float(data[4])) / 2, 2))
-            else:
-                new_his_data.append(round(float(data[_index]), 2))
-        # return new_his_data
+            sum_data = sum([float(data[1]), float(data[2]), float(data[3]), float(data[4])])
+            new_his_data.append(round(sum_data/4, 2))
         return self.alignment_data(format_data, new_his_data)
 
     @staticmethod
@@ -226,56 +195,48 @@ class Stock:
             log('--- 获取龙虎榜失败 ---')
             return
 
-        for index_type in [
-            'high',
-            'low',
-            'aver',
-            'rate'
-        ]:
-            try:
-                # 保存数据
-                save_data = {'update_time': time.strftime("%Y-%m-%d", time.localtime(time.time()))}
-                _type_index, format_data = self.get_format_data(index_type)
+        try:
+            # 保存数据
+            save_data = {'update_time': time.strftime("%Y-%m-%d", time.localtime(time.time()))}
 
-                names = []
-                results = []
-                for stock_data in self.stock_history:
-                    stock_name = stock_data['name']
-                    stock_history_data = self.get_30_days_data(_type_index, stock_data['history_data'], format_data)
-                    stock_result = self.cal_frechet_distance(np.array(format_data), np.array(stock_history_data))
-                    names.append(stock_name)
-                    results.append(stock_result)
-                best_result = min(results)
-                best_stock_name = names[results.index(best_result)]
-                best_stock_his = []
-                for stock_data in self.stock_history:
-                    if stock_data.get('name') == best_stock_name:
-                        last_detail = stock_data['last_detail']
-                        best_stock_his.append({
-                            'name': stock_data['name'],
-                            'history_data': self.get_30_days_data(_type_index, stock_data['history_data'], format_data)
-                        })
+            names = []
+            results = []
+            for stock_data in self.stock_history:
+                stock_name = stock_data['name']
+                stock_history_data = self.get_30_days_data(stock_data['history_data'], format_data)
+                stock_result = self.cal_frechet_distance(np.array(format_data), np.array(stock_history_data))
+                names.append(stock_name)
+                results.append(stock_result)
+            best_result = min(results)
+            best_stock_name = names[results.index(best_result)]
+            best_stock_his = []
+            for stock_data in self.stock_history:
+                if stock_data.get('name') == best_stock_name:
+                    last_detail = stock_data['last_detail']
+                    best_stock_his.append({
+                        'name': stock_data['name'],
+                        'history_data': self.get_30_days_data(stock_data['history_data'], format_data)
+                    })
 
-                        save_data.update({
-                            'code': stock_data["code"],
-                            'name': best_stock_name,
-                            'trade': stock_data["trade"],
-                            'up_days': stock_data["up_days"],
-                            'type': [index_type],
-                            'match': round(float(best_result), 2)
-                        })
-                        save_data.update(last_detail)
-                        log(f'本期最接近标准线的是：{stock_data["code"]} {best_stock_name}\n最后收盘信息：{last_detail}')
+                    save_data.update({
+                        'code': stock_data["code"],
+                        'name': best_stock_name,
+                        'limit_up_type': stock_data["limit_up_type"],
+                        'high_days': stock_data["high_days"],
+                        'match': round(float(best_result), 2)
+                    })
+                    save_data.update(last_detail)
+                    log(f'本期最接近标准线的是：{stock_data["code"]} {best_stock_name}\n最后收盘信息：{last_detail}')
 
-                # 画图
-                if show:
-                    self.draw(format_data, best_stock_his)
+            # 画图
+            if show:
+                self.draw(format_data, best_stock_his)
 
-                # save
-                if save:
-                    MongoPipeline('daily_info').update_item({'update_time': None, 'code': None}, save_data)
-            except Exception as error:
-                log_err(error)
+            # save
+            if save:
+                MongoPipeline('daily_info').update_item({'update_time': None, 'code': None}, save_data)
+        except Exception as error:
+            log_err(error)
 
     # 画图
     @staticmethod
@@ -295,5 +256,9 @@ class Stock:
 
 
 if __name__ == '__main__':
-    s = Stock(lianbang)
-    s.get_result()
+    for limit_query in [
+        [lianbang, {"high_days" : r_updays_filter}],
+        [zhangting, {"high_days" : '首板'}],
+    ]:
+        s = Stock(limit_query[0], limit_query[1])
+        s.get_result()

@@ -48,7 +48,7 @@ T字线
 小阴下影线
 """
 
-k_format_list = ['cnn', 'nnn', 'nnk', 'kjn', 'nln', 'nlc', 'lcn', 'njn', 'kon', 'ncn', 'cnl', 'nlo', 'nkn', 'jnl', 'nll', 'llk', 'lkd', 'kdd', 'kno', 'dnn', 'nnl', 'lkl', 'ljn', 'nlk', 'kln', 'jnn', 'ono', 'ojg', 'gon', 'ndn', 'kgn', 'non', 'onl', 'lll', 'lld', 'dln', 'lnd', 'ndl', 'dll', 'nkg', 'kgc', 'gcd', 'lnn', 'kkl', 'kld', 'ldd', 'ddd', 'ddo', 'dod']
+k_format_list = ['24cnn', '13nnn', '24nnk', '13kjn', '13nln', '24nlc', '24lcn', '24njn', '24kon', '24ncn', '13cnl', '13nlo', '24nkn', '13jnl', '24nll', '24llk', '13lkd', '24kdd', '13kno', '24dnn', '24nnn', '24nnl', '13lkl', '13ljn', '24nlk', '13kln', '24jnn', '13ono', '13ojg', '13gon', '13ndn', '13kgn', '13non', '24onl', '24lll', '24lld', '13dln', '24lnd', '13ndl', '13dll', '24nkg', '13kgc', '24gcd', '13lnn', '13kkl', '24kld', '24ldd', '13ddd', '24ddo', '13dod']
 
 
 class Format:
@@ -97,12 +97,12 @@ class Format:
         # k_data(his_list[0].split(','), his_list[1].split(','), his_list[2].split(','))
 
     @staticmethod
-    def analysis_data(data: list):
+    def analysis_k_data(data: list):
         kp = float(data[1])
         sp = float(data[2])
         zg = float(data[3])
         zd = float(data[4])
-        zdf = float(data[8])
+        zdf = float(sp - kp)
         format_status = {
             'a': '倒T字',
             'b': 'T字',
@@ -121,6 +121,8 @@ class Format:
             '0': '大阴 双头 下影线'
         }
 
+        # 三天线状
+        status = None
         try:
             st = abs(sp - kp)
             syx = abs(zg - sp)
@@ -194,9 +196,37 @@ class Format:
                         status = '强势 大 阴 线'
                     else:
                         status = f'[st!=0,syx==0,xyx!=0,zdf==0]{data}'
-            return status
         except Exception as error:
             print(error)
+        return status
+
+    @staticmethod
+    def analysis_cjl_data(font_2: list, font_1: list, data: list):
+        font_2_cjl = round(float(font_2[5]), 2)
+        font_1_cjl = round(float(font_1[5]), 2)
+        data_cjl = round(float(data[5]), 2)
+
+        # （本期的某个指标的值－上一期这个指标的值）／上一期这个指标的值
+        font_1_rate = round(float((font_1_cjl - font_2_cjl) / font_2_cjl), 2)
+        data_rate = round(float((data_cjl - font_1_cjl) / font_1_cjl), 2)
+        if font_1_rate > data_rate:
+            return '1'
+        else:
+            return '2'
+
+    @staticmethod
+    def analysis_hsl_data(font_2: list, font_1: list, data: list):
+        font_2_hsl = round(float(font_2[10]), 2)
+        font_1_hsl = round(float(font_1[10]), 2)
+        data_hsl = round(float(data[10]), 2)
+
+        # （本期的某个指标的值－上一期这个指标的值）／上一期这个指标的值
+        font_1_rate = round(float((font_1_hsl - font_2_hsl) / font_2_hsl), 2)
+        data_rate = round(float((data_hsl - font_1_hsl) / font_1_hsl), 2)
+        if font_1_rate > data_rate:
+            return '3'
+        else:
+            return '4'
 
     @staticmethod
     def prognosis(data):
@@ -205,23 +235,28 @@ class Format:
         else:
             return ''
 
+
     def k_data(self, font_2: list, font_1: list, data: list):
         if not font_2 and not font_1:
             font_2_status = ''
             font_1_status = ''
         elif font_1 and not font_2:
             font_2_status = ''
-            font_1_status = self.analysis_data(font_1)
+            font_1_status = self.analysis_k_data(font_1)
         elif font_2:
-            font_2_status = self.analysis_data(font_2)
-            font_1_status = self.analysis_data(font_1)
+            font_2_status = self.analysis_k_data(font_2)
+            font_1_status = self.analysis_k_data(font_1)
         else:
             font_2_status = ''
             font_1_status = ''
 
-        today_status = self.analysis_data(data)
+        cjl_rate = self.analysis_cjl_data(font_2, font_1, data)
+        hsl_rate = self.analysis_hsl_data(font_2, font_1, data)
 
-        prognosis_result = self.prognosis(str(font_2_status) + str(font_1_status) + str(today_status))
+        today_status = self.analysis_k_data(data)
+
+        prognosis_data = str(cjl_rate) + str(hsl_rate) + str(font_2_status) + str(font_1_status) + str(today_status)
+        prognosis_result = self.prognosis(prognosis_data)
 
         if float(data[8]) > 0:
             today_zd = '涨'
@@ -250,4 +285,4 @@ if __name__ == '__main__':
     # for stock_code in stocks:
 
     f = Format()
-    f.req_history_data('000017')
+    f.req_history_data('002339')
