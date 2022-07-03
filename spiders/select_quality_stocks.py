@@ -3,29 +3,28 @@
 
 import json
 import pprint
+import re
+import time
 from multiprocessing.pool import ThreadPool
+
 import requests
-from pylab import *
 
 from common.log_out import log, log_err
 from dbs.pipelines import MongoPipeline
+from models.k_line_similarity import Similarity
 from rules import r_updays_filter
 
-mpl.rcParams['font.sans-serif'] = ['SimHei']  # 指定默认字体（解决中文无法显示的问题）
-mpl.rcParams['axes.unicode_minus'] = False  # 解决保存图像时负号“-”显示方块的问题
 pp = pprint.PrettyPrinter(indent=4)
 
 names = [
     '日期', '开盘', '收盘', '最高', '最低', '成交量', '成交额', '振幅', '涨跌幅', '涨跌额', '换手率'
 ]
 
-format_data = [14.09, 13.78, 13.64, 13.43, 13.21, 13.17, 13.18, 13.08, 12.64, 12.32, 11.56, 10.8, 10.55, 10.63, 10.86, 11.16, 11.12, 11.28, 11.36, 11.55, 11.42, 12.12, 12.7, 12.34, 12.27, 12.14, 12.21, 12.38, 12.52, 12.78]
-
 # 是否显示画图
-show = True
+show = False
 
 # 是否入库
-save = True
+save = False
 
 # 运行时间   每天下午18：00
 
@@ -34,8 +33,8 @@ db = 'stock'
 
 # mongo collections
 geguzhangfu = 'geguzhangfu'  # 个股涨幅
-lianbang = 'lianbang' # 连榜
-zhangting = 'zhangting' # 涨停
+lianbang = 'lianbang'  # 连榜
+zhangting = 'zhangting'  # 涨停
 longhu_all = 'longhu_all'  # 总榜
 longhu_capital = 'longhu_capital'  # 机构榜
 longhu_org = 'longhu_org'  # 游资榜
@@ -134,60 +133,14 @@ class Stock:
         except Exception as error:
             log_err(error)
 
-    # 对齐标准数据
-    @staticmethod
-    def alignment_data(n, m):
-        start = n[0]
-        dis = start - m[0]
-        new_list = []
-        for x in m:
-            new_list.append(round(float(x + dis), 2))
-        return new_list
-
     # 获取最近30天交易数据
-    def get_30_days_data(self, history_data, format_data=None):
+    @staticmethod
+    def get_30_days_data(history_data):
         new_his_data = []
         for data in history_data[-30:]:
             sum_data = sum([float(data[1]), float(data[2]), float(data[3]), float(data[4])])
-            new_his_data.append(round(sum_data/4, 2))
-        return self.alignment_data(format_data, new_his_data)
-
-    @staticmethod
-    def cal_frechet_distance(curve_a: np.ndarray, curve_b: np.ndarray):
-        # 距离公式，两个坐标作差，平方，累加后开根号
-        def euc_dist(pt1, pt2):
-            return np.sqrt(np.square(pt2[0] - pt1[0]) + np.square(pt2[1] - pt1[1]))
-
-        # 用递归方式计算，遍历整个ca矩阵
-        def _c(ca, i, j, P, Q):  # 从ca左上角开始计算，这里用堆的方法把计算序列从右下角压入到左上角，实际计算时是从左上角开始
-            if ca[i, j] > -1:
-                return ca[i, j]
-            elif i == 0 and j == 0:  # 走到最左上角，只会计算一次
-                ca[i, j] = euc_dist(P[0], Q[0])
-            elif i > 0 and j == 0:  # 沿着Q的边边走
-                ca[i, j] = max(_c(ca, i - 1, 0, P, Q), euc_dist(P[i], Q[0]))
-            elif i == 0 and j > 0:  # 沿着P的边边走
-                ca[i, j] = max(_c(ca, 0, j - 1, P, Q), euc_dist(P[0], Q[j]))
-            elif i > 0 and j > 0:  # 核心代码：在ca矩阵中间走，寻找对齐路径
-                ca[i, j] = max(min(_c(ca, i - 1, j, P, Q),  # 正上方
-                                   _c(ca, i - 1, j - 1, P, Q),  # 斜左上角
-                                   _c(ca, i, j - 1, P, Q)),  # 正左方
-                               euc_dist(P[i], Q[j]))
-            else:  # 非法的无效数据，算法中不考虑，此时 i<0,j<0
-                ca[i, j] = float("inf")
-            return ca[i, j]
-
-        # 这个是给我们调用的方法
-        def frechet_distance(P, Q):
-            ca = np.ones((len(P), len(Q)))
-            ca = np.multiply(ca, -1)
-            dis = _c(ca, len(P) - 1, len(Q) - 1, P, Q)  # ca为全-1的矩阵，shape = ( len(a), len(b) )
-            return dis
-
-        # 这里构造计算序列
-        curve_line_a = list(zip(range(len(curve_a)), curve_a))
-        curve_line_b = list(zip(range(len(curve_b)), curve_b))
-        return frechet_distance(curve_line_a, curve_line_b)
+            new_his_data.append(round(sum_data / 4, 2))
+        return new_his_data
 
     # 获取曲线相似度结果
     def get_result(self):
@@ -201,21 +154,22 @@ class Stock:
 
             names = []
             results = []
+            stock_history_data = []
             for stock_data in self.stock_history:
                 stock_name = stock_data['name']
-                stock_history_data = self.get_30_days_data(stock_data['history_data'], format_data)
-                stock_result = self.cal_frechet_distance(np.array(format_data), np.array(stock_history_data))
+                stock_history_data = self.get_30_days_data(stock_data['history_data'])
+                stock_result = Similarity().run(stock_history_data)
                 names.append(stock_name)
                 results.append(stock_result)
             best_result = min(results)
             best_stock_name = names[results.index(best_result)]
-            best_stock_his = []
+            best_stock_info = {}
             for stock_data in self.stock_history:
                 if stock_data.get('name') == best_stock_name:
                     last_detail = stock_data['last_detail']
-                    best_stock_his.append({
+                    best_stock_info.update({
                         'name': stock_data['name'],
-                        'history_data': self.get_30_days_data(stock_data['history_data'], format_data)
+                        'history_data': stock_history_data
                     })
 
                     save_data.update({
@@ -227,10 +181,9 @@ class Stock:
                     })
                     save_data.update(last_detail)
                     log(f'本期最接近标准线的是：{stock_data["code"]} {best_stock_name}\n最后收盘信息：{last_detail}')
-
             # 画图
             if show:
-                self.draw(format_data, best_stock_his)
+                Similarity().draw(best_stock_info)
 
             # save
             if save:
@@ -238,27 +191,11 @@ class Stock:
         except Exception as error:
             log_err(error)
 
-    # 画图
-    @staticmethod
-    def draw(format_data, stock_list):
-        x = np.linspace(0, 1, 30)
-        plt.figure()
-
-        # 画标准数据线
-        plt.plot(x, format_data, label='标准')
-
-        # 画其他数据线
-        for stock_data in stock_list:
-            plt.plot(x, stock_data['history_data'], linestyle='--', label=stock_data['name'])
-
-        plt.legend(loc=0)
-        plt.show()
-
 
 if __name__ == '__main__':
     for limit_query in [
-        [lianbang, {"high_days" : r_updays_filter}],
-        [zhangting, {"high_days" : '首板'}],
+        [lianbang, {"high_days": r_updays_filter}],
+        [zhangting, {"high_days": '首板'}],
     ]:
         s = Stock(limit_query[0], limit_query[1])
         s.get_result()
