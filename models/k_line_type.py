@@ -145,4 +145,4 @@ if __name__ == '__main__':
                 print(l.analysis_k_data(data))
         except Exception as error:
             print(error)
-    req_history_data('002907')
+    req_history_data('000722')

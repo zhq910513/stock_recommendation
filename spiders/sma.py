@@ -210,7 +210,7 @@ if __name__ == '__main__':
     # df = df_data(d_l)
     # print(df)
 
-    d_ll = req_history_data('000025')
+    d_ll = req_history_data('000722')
     df = df_data(d_ll)
     print(df)
 
