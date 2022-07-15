@@ -22,6 +22,6 @@ def handle_price(buy_price, buy_times=5):
 
 
 if __name__ == '__main__':
-    buy = 14.50
-    handle_price(buy)
+    buy = 14.5
+    handle_price(buy,6)
 
